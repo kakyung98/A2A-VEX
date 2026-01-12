@@ -1,28 +1,12 @@
-from selenium import webdriver
-from selenium.webdriver.firefox.service import Service
-from selenium.webdriver.common.by import By
-import time
+import requests
+from bs4 import BeautifulSoup
 
 def scrape(url):
-    # Set up the Firefox WebDriver
-    service = Service("/usr/bin/geckodriver")
-    options = webdriver.FirefoxOptions()
-    options.add_argument('--headless')
-    driver = webdriver.Firefox(service=service, options=options)
-
     try:
-        # Open the target page
-        driver.get(url)
-
-        # Wait for the page to load completely
-        time.sleep(3)  # Adjust sleep time if necessary
-
-        # Obtain all text from the page
-        return driver.find_element(By.TAG_NAME, "body").text
-
-        # Print the extracted text
-        # print(page_text)
-
-    finally:
-        # Close the browser
-        driver.quit()
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.content, 'html.parser')
+        return soup.get_text(separator='\n', strip=True)
+    except Exception as e:
+        print(f"[!] Error scraping {url}: {e}")
+        return ""

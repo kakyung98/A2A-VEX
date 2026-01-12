@@ -13,27 +13,26 @@ load_dotenv()
 
 def get_data(cve_id: str, path: str):
     '''
-    "CVE-2025-0001": {
+    "CVE-202X-XXXX": {
+        "description": "...",
         "cwe": [
             {
-                "id": "CWE-23",
-                "value": "CWE-23 Relative Path Traversal"
+                "id": "CWE-XX",
+                "value": "CWE-XX ..."
             }
         ],
         "patch_commits": [
             {
-                "url": "https://github.com/mlflow/mlflow/commit/400c226953b4568f4361bc0a0c223511652c2b9d",
+                "url": "https://github.com/...",
                 "content": "..."
             }
         ],
-        "sw_version": "v2.8.1",
-        "sw_version_wget": "https://github.com/mlflow/mlflow/archive/refs/tags/v2.8.1.zip",
-        "description": "...",
+        "sw_version": "vX.X.X",
+        "sw_version_wget": "https://github.com/.../.../archive/refs/tags/vX.X.X.zip",
         "sec_adv": [
             {
                 "url": "...",
-                "content": "...",
-                "effective": true
+                "content": "..."
             }
         ]
     }
@@ -48,7 +47,8 @@ def get_data(cve_id: str, path: str):
     try:
         cve = get_cve_by_id(cve_id)
         data[cve['id']] = {
-            "description": cve.get('description')
+            "description": cve.get('description'),
+            "cwe": cve.get("cwe")
         }
 
         # 1) source code provided
@@ -108,10 +108,11 @@ def get_data(cve_id: str, path: str):
 
         print(f"[+] Data for {cve_id} saved to {path}")
         print(f"    - Software code provided: {software_code_provided}")
-        print(f"    - Software version provided: {software_version_provided}")
-        print(f"    - Software version extractable: {software_version_extractable}")
-        print(f"    - Software version available: {software_version_available}")
-        print(f"    - Security advisories provided: {security_advisories_provided}")
+        print(f"    - Software version available: {software_version_provided and software_version_available and software_version_available}")
+        print(f"    - Security advisories provided (Optional): {security_advisories_provided}")
+
+        if software_code_provided and software_version_provided and software_version_extractable and software_version_available:
+            print("✅ Ready to reproduce!!")
 
     except Exception as e:
         print(f"[!] Error processing {cve_id}: {e}")
