@@ -1,10 +1,6 @@
 import os, re, json, requests
 from typing import Generator
-from openai import OpenAI
-from pydantic import BaseModel, Field
-from dateutil import parser
-from .llm_utils import ask_structured_llm
-from .data_processor import get_commit_data
+from data_processor import get_commit_data
 
 CVE_DIR = os.path.join(os.path.dirname(__file__), '..', 'cvelist')
 
@@ -285,61 +281,6 @@ def affected_version_exist(repo_owner: str, repo_name: str, tag: str, less: bool
             else:
                 print(f"Error: {response.status_code}, {response.text}")
                 return None
-
-def cve_with_effective_sec_adv(sec_adv) -> dict:
-    class AdvisoryResponse(BaseModel):
-        reason: str = Field(..., description="The reason for the response")
-        decision: bool = Field(..., description="The decision made by the model")
-
-    sys = "You are a security researcher who is an expert in analyzing security advisories.\n" \
-            "Your task is to analyze the given security advisory and see if it provides a proof of concept of the vulnerability or " \
-            "detailed steps to reproduce the vulnerability."
-    prompt = f"### Security Advisory\n{sec_adv}"
-
-    res = ask_structured_llm(
-        sys=sys,
-        prompt=prompt,
-        model="gpt-4o-2024-11-20",
-        response_model=AdvisoryResponse
-    )
-    
-    return {"decision": res.decision, "reason": res.reason}
-
-def get_cve_by_id_v5(cve_id: str) -> dict | None:
-    """
-    Returns the CVE data for the given CVE ID.
-    """
-    if not cve_id.startswith("CVE-") or len(cve_id.split('-')) != 3:
-        raise ValueError("Invalid CVE ID format. Expected format: CVE-YYYY-NNNNNNN")
-    
-    # Extract year and numeric portion from the CVE ID
-    _, year, number = cve_id.split('-')
-    year = int(year)
-    number = int(number)
-    
-    # Calculate the subdirectory
-    sub_dir = f"{year}/{number // 1000}xxx"
-    
-    # Construct the full file path
-    file_path = os.path.join(os.path.join(os.path.dirname(__file__), '..', 'cvelistV5', 'cves', sub_dir, f"{cve_id}.json"))
-
-    # Check if the file exists
-    if os.path.exists(file_path):
-        with open(file_path, 'r', encoding='ISO-8859-1') as f:
-            cve_data = json.load(f)
-        return cve_data
-    else:
-        print(f"{file_path} does not exist")
-        return None
-
-def get_published_date(cve_id: str) -> str:
-    cve = get_cve_by_id_v5(cve_id)
-    if cve:
-        if 'cveMetadata' in cve:
-            if 'datePublished' in cve['cveMetadata']:
-                pub_date = cve['cveMetadata']['datePublished']
-                return pub_date
-    return None
 
 def get_patch_content(owner: str, project: str, hash: str) -> str:
     patch_data = get_commit_data(owner, project, hash)

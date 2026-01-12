@@ -5,7 +5,7 @@ import time
 
 def scrape(url):
     # Set up the Firefox WebDriver
-    service = Service("/opt/homebrew/bin/geckodriver")
+    service = Service("/usr/bin/geckodriver")
     options = webdriver.FirefoxOptions()
     options.add_argument('--headless')
     driver = webdriver.Firefox(service=service, options=options)

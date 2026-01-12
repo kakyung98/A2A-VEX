@@ -1,8 +1,8 @@
-import argparse
-from dotenv import load_dotenv
-import signal
 import os
 import time
+import signal
+import argparse
+from dotenv import load_dotenv
 
 class TimeoutExpired(Exception):
     def __init__(self, phase: str = None, message: str = "Timeout expired"):

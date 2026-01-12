@@ -50,21 +50,3 @@ def get_commit_data(repo_owner: str, repo_name: str, commit_hash: str) -> dict |
     else:
         print("Failed to fetch commit data. Status Code:", response.status_code)
         return None
-
-def process_patch_commit(cve_id: str, repo_url: str, commit_hash: str):
-    """
-    Processes the patch commit.
-    """
-    cve_path = os.path.join(DATA_DIR, cve_id)
-    if not os.path.exists(cve_path):
-        os.makedirs(cve_path)
-
-    os.mkdir(os.path.join(cve_path, commit_hash))
-
-    # create a bash script to clone the repository and checkout the commit
-    script =    "#!/bin/bash\n" \
-                f"git clone {repo_url}\n" \
-                f"cd {repo_url.split('/')[-1]}\n" \
-                f"git checkout {commit_hash}~1\n"
-    with open(os.path.join(cve_path, commit_hash, 'script.sh'), 'w') as f:
-        f.write(script)
