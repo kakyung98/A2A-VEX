@@ -15,5 +15,4 @@ RUN curl -L "https://github.com/docker/compose/releases/download/$(curl -s https
 
 COPY ./src /src
 WORKDIR /src/agentlib
-RUN pip3 install selenium
 RUN pip3 install -e .

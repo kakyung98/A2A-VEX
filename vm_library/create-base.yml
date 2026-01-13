@@ -47,5 +47,4 @@
   - name: Install agentlib
     shell: |
       cd /home/jammy/src/agentlib/
-      pip install selenium
       pip install -e .
