@@ -20,6 +20,7 @@ If you want to reproduce a CVE follow the steps in (A-❶) to extract CVE data, 
    ```bash
    python3 -m venv env
    pip install -r src/data/requirements.txt
+   playwright install
    ```
 
 2. Clone the `cvelist` repository
@@ -32,7 +33,7 @@ If you want to reproduce a CVE follow the steps in (A-❶) to extract CVE data, 
 
 4. Run the following script to extract the given CVE data
    ```bash
-   python3 ./data/scripts/cve_data.py --cve_id <cve-id> --output_path <json-file-path>
+   python3 ./data/scripts/cve_data.py --cve_id CVE-2024-4340 --output_path ./data/example/test.json
    ```
 
 5. If the above script returns `✅ Ready to reproduce!!` you can move to next step, otherwise go to [PROCESSING.md](src/data/PROCESSING.md), you might have to add some missing CVE context (mainly source code url and its version) manually. This can happen because the CVE records in `cvelistV5` (1) do not contain the source code information (maybe because the CVE belongs to a commercial product), (2) records were modified, or (3) our parsing script was not able to automatically extract some of the content.
@@ -57,7 +58,7 @@ We provide the following two options to run CVE-Genie:
 
 4. Run the following command to reproduce the given CVE
    ```bash
-   ENV_PATH=.env MODEL=example_run python3 main.py --cve <cve_id> --json <json-file-path> --run-type build,exploit,verify
+   ENV_PATH=.env MODEL=example_run python3 main.py --cve CVE-2024-4340 --json data/example/test.json --run-type build,exploit,verify
    ```
 
 5. The final results will be stored in `/shared/<cve_id>/`

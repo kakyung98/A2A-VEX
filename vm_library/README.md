@@ -28,6 +28,7 @@ Role: Provisions reproducible Ubuntu cloud images, configures dependencies, and 
 * SSH key:
 
   ```bash
+  cd vm_library/
   chmod 0600 my-ssh-key
   ```
 
@@ -50,6 +51,8 @@ Role: Provisions reproducible Ubuntu cloud images, configures dependencies, and 
 ---
 
 ## Setup Instructions
+
+Perform the following actions in the `vm_library/` directory:
 
 1. **Create seed image for cloud-init**
 
@@ -84,12 +87,12 @@ Role: Provisions reproducible Ubuntu cloud images, configures dependencies, and 
 ```bash
 python3 run_cve.py \
     -c CVE-2024-4340 \
-    -j data/example/data.json \
+    -j data/example/test.json \
     -m example-run \
     -t build,exploit,verify
 ```
 
-Output and logs will be stored in `shared/<namespace>/<CVE>/`.
+Output and logs will be stored in `vm_library/shared/<namespace>/<CVE>/`.
 
 ---
 
@@ -114,6 +117,7 @@ This launches sequential CVE reproductions, automatically skipping completed one
 * **Shared directory:** Host and guest communicate via `/shared` (mounted inside VM). Logs and artifacts persist there.
 * **Security:** All VMs are isolated QEMU instances with non-persistent overlays.
 * **Cleaning up:** Overlay images are automatically removed if no exploit artifacts are generated.
+* **Error Handling**: If between runs you are not able to connext to the base image on a given port, do `ps -aux | grep qemu` to see if a VM is already running on the given port.
 
 ---
 
@@ -121,5 +125,5 @@ This launches sequential CVE reproductions, automatically skipping completed one
 
 * For each CVE run:
 
-  * `shared/<namespace>/<CVE>/log.txt` - Console logs from the AI agent.
-  * `shared/<namespace>/<CVE>/scripts/` - Generated build/exploit scripts (if successful).
+  * `vm_library/shared/<namespace>/<CVE>/log.txt` - Console logs from the AI agent.
+  * `vm_library/shared/<namespace>/<CVE>/scripts/` - Generated build/exploit scripts (if successful).

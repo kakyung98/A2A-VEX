@@ -8,7 +8,6 @@ from cve_processor import (
                             get_cve_by_id,
                             scrape
                         )
-from rich import print as rprint
 
 load_dotenv()
 
@@ -115,6 +114,11 @@ def get_data(cve_id: str, path: str):
         print(f"    - Software version provided in CVE data (required): {software_version_provided}")
         print(f"    - Software vulnerable version source code available on GitHub (required): {software_version_available}")
         print(f"    - Security advisories provided (Optional): {security_advisories_provided}")
+
+        if software_code_provided and software_version_provided and software_version_available:
+            print("✅ Ready to reproduce!!")
+        else:
+            print("⚠️ Missing required data. Please check the src/data/PROCESSING.md for guidance.")
 
     except Exception as e:
         print(f"[!] Error processing {cve_id}: {e}")
