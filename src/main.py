@@ -85,10 +85,10 @@ class CVEReproducer:
                     "- a) 🧠 Knowledge Builder \n" \
                     "-------------------------------------------\n")
         
-                cwe = '\n'.join([f"* {c['id']} - {c['value']}" for c in self.cve_info["cwe"]])
+                cwe = '\n'.join([f"* {c['id']} - {c['value']}" for c in self.cve_info["cwes"]]) if "cwes" in self.cve_info else ""
                 project_name = self.cve_info["sw_version_wget"].split("//")[1].split("/")[2]
-                patches = '\n\n'.join([f"Commit Hash: {p['url'].split('/')[-1]}\n\"\"\"\n{p['content']}\n\"\"\"" for p in self.cve_info["patch_commits"]])
-                sec_adv = '\n\n'.join([f"Advisory: {a['url']}\n\"\"\"\n{a['content']}\n\"\"\"" for ix, a in enumerate(self.cve_info["sec_adv"])])
+                patches = '\n\n'.join([f"Commit Hash: {p['url'].split('/')[-1]}\n\"\"\"\n{p['content']}\n\"\"\"" for p in self.cve_info["patch_commits"]]) if "patch_commits" in self.cve_info else ""
+                sec_adv = '\n\n'.join([f"Advisory: {a['url']}\n\"\"\"\n{a['content']}\n\"\"\"" for ix, a in enumerate(self.cve_info["sec_adv"])]) if "sec_adv" in self.cve_info else ""
                 knowledge_builder = KnowledgeBuilder(
                     id = self.cve_id,
                     description = self.cve_info["description"],

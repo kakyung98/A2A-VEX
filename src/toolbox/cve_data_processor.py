@@ -1,5 +1,4 @@
 import json, os, subprocess
-from data.scripts import cve_processor, scraper_utils
 
 class CVEDataProcessor:
     def __init__(self, cve_id: str, cve_json: str = None):

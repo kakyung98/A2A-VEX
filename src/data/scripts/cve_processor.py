@@ -1,87 +1,121 @@
-import os, re, json, requests
-from typing import Generator
-from data_processor import get_commit_data
+import os, re, json, time, requests
+from playwright.sync_api import sync_playwright
 
-CVE_DIR = os.path.join(os.path.dirname(__file__), '..', 'cvelist')
+CVE_DIR = os.path.join(os.path.dirname(__file__), '..', 'cvelistV5', 'cves')
 
-def fetch_patch_commit_url(cve: dict) -> tuple[list, list]:
+def fetch_references(data: dict) -> tuple[list, list]:
     """
     Fetches the patch commit URLs from the list of URLs.
     """
-    if 'references' not in cve:
+    references = data['containers']['cna']['references'] if 'references' in data['containers']['cna'] else []
+    if not references:
         return [], []
     
-    urls = cve['references']['reference_data']
     git_re = r'(((?P<repo>(https|http):\/\/(bitbucket|github|gitlab)\.(org|com)\/(?P<owner>[^\/]+)\/(?P<project>[^\/]*))\/(commit|commits)\/(?P<hash>\w+)#?)+)' # Used this regex from CVEfixes (https://github.com/secureIT-project/CVEfixes)
     patch_commit_data = []
     other_urls = []
 
-    for url in urls:
-        match = re.search(git_re, url['url'])
+    for ref in references:
+        match = re.search(git_re, ref['url'])
         if match:
             patch_commit_data.append({
                 'owner': match.group('owner'),
                 'project': match.group('project'),
                 'hash': match.group('hash'),
                 'repo_url': match.group('repo').replace(r'http:', r'https:'),
-                'patch_commit_url': url['url']
+                'patch_commit_url': ref['url']
             })
         else:
-            other_urls.append(url['url'])
+            other_urls.append(ref['url'])
     
     return patch_commit_data, other_urls
 
-def get_cwe_id(cve: dict) -> list[str]:
+def get_cwe_info(data: dict) -> list[dict]:
     # [{'id': cwe['cweId'], 'value': cwe['value']} if 'cweId' in cwe else {'id': 'n/a', 'value': cwe['value']} for cwe in cve['problemtype']['problemtype_data'][0]['description']] if 'problemtype' in cve else []
     cwes = []
-    if 'problemtype' in cve:
-        if 'problemtype_data' in cve['problemtype']:
-            for cwe in cve['problemtype']['problemtype_data']:
-                cwe = cwe['description'][0]
-                cwe_info = {'id': 'n/a', 'value': 'n/a'}
-                if 'cweId' in cwe:
-                    cwe_info['id'] = cwe['cweId']
-                elif 'value' in cwe:
-                    cwe_re = re.search(r'CWE-(\d+)', cwe['value'])
-                    if cwe_re:
-                        cwe_info['id'] = cwe_re.group(1)
-                cwe_info['value'] = cwe['value']
-                cwes.append(cwe_info)
+    problem_types = data['containers']['cna']['problemTypes'] if 'problemTypes' in data['containers']['cna'] else []
+    for problem_type in problem_types:
+        if 'descriptions' in problem_type:
+            for description in problem_type["descriptions"]:
+                if 'type' in description and description["type"].lower() != "cwe":
+                    continue
+                if 'lang' in description and description["lang"].lower() != "en":
+                    continue
+            
+            cwe_info = {'id': 'not provided', 'value': 'not provided'}
+            if "cweId" in description:
+                cwe_info['id'] = description["cweId"]
+            elif "description" in description:
+                cwe_re = re.search(r'CWE-(\d+)', description["value"])
+                if cwe_re:
+                    cwe_info['id'] = cwe_re.group(1)
+            cwe_info['value'] = description["description"] if "description" in description else "not provided"
+            cwes.append(cwe_info)
+
     return cwes
 
-def process_cve_data(cve: dict) -> dict:
+def get_version_info(data: dict) -> tuple[str, str]:
+    vendor_data = data["containers"]["cna"]["affected"] if "affected" in data["containers"]["cna"] else []
+    for vendor in vendor_data:
+        if 'versions' in vendor:
+            for version in vendor['versions']:
+                if 'status' in version and version['status'].lower() != 'affected':
+                    continue
+                if 'lessThan' in version:
+                    return version['lessThan'], 'lessThan'
+                elif 'lessThanOrEqual' in version:
+                    return version['lessThanOrEqual'], 'lessThanOrEqual'
+                else:
+                    invalid_versions = ['unspecified', '*', '0']
+                    if 'version' in version and version['version'] not in invalid_versions:
+                        return version['version'], 'equal'
+    return 'n/a', 'n/a'
+
+def process_cve_data(data: dict) -> dict:
     """
     Processes the CVE data and returns a dictionary.
     """
-    patch_urls, other_urls = fetch_patch_commit_url(cve)
-    cwe_id = get_cwe_id(cve)
-    cve_data = {
-        'id': cve['CVE_data_meta']['ID'],
-        'description': cve['description']['description_data'][0]['value'],
-        'cwe': cwe_id,
-        'patch_urls': patch_urls,
-        'other_urls': other_urls,
-        'vendor_data': cve['affects']['vendor']['vendor_data'] if 'affects' in cve else [],
-        'version_data': cve['affects']['vendor']['vendor_data'][0]['product']['product_data'][0]['version']['version_data'] if 'affects' in cve else []
-    }
+    cve_data = {}
+    
+    # cve id
+    if 'cveMetadata' not in data or 'cveId' not in data["cveMetadata"]:
+        return {}
+    cve_data['id'] = data["cveMetadata"]["cveId"]
+
+    # check if containers are present
+    if 'containers' not in data or 'cna' not in data["containers"]:
+        return cve_data
+
+    # description
+    descriptions = data["containers"]["cna"]["descriptions"] if "descriptions" in data["containers"]["cna"] else []
+    descriptions = [desc["value"] for desc in descriptions if desc["lang"] == "en"] if descriptions else []
+    cve_data['description'] = descriptions[0] if descriptions else ""
+
+    # published date
+    cve_data['published_date'] = data["cveMetadata"]["datePublished"] if "datePublished" in data["cveMetadata"] else ""
+
+    # cwes
+    cve_data['cwes'] = get_cwe_info(data)
+
+    # patch and other urls
+    patch_urls, other_urls = fetch_references(data)
+
+    if not len(patch_urls):
+        return cve_data
+    cve_data['patch_urls'] = patch_urls
+    cve_data['other_urls'] = other_urls
+
+    # version
+    version, version_type = get_version_info(data)
+    if version != 'n/a' and version_type != 'n/a':
+        cve_data['version_data'] = {
+            'version': version,
+            'version_type': version_type
+        }
+    else:
+        cve_data['version_data'] = {}
 
     return cve_data
-
-def cves_data(year: int = None) -> Generator[dict, None, None]:
-    """
-    Returns a generator of CVE data.
-    """
-    if year:
-        cve_dir = os.path.join(CVE_DIR, str(year))
-    else:
-        cve_dir = CVE_DIR
-    
-    for subdir, _, files in os.walk(cve_dir):
-        for file in files:
-            if file.endswith('.json'):
-                with open(os.path.join(subdir, file), 'r') as f:
-                    cves_data = json.load(f)
-                yield process_cve_data(cves_data)
 
 def get_cve_by_id(cve_id: str) -> dict | None:
     """
@@ -110,181 +144,130 @@ def get_cve_by_id(cve_id: str) -> dict | None:
         print(f"{file_path} does not exist")
         return None
 
-def get_software_versions(cve_id: str) -> list[bool, str]:
-    """
-    Returns the affected software versions for the given CVE ID.
-    """
-    cve_data = get_cve_by_id(cve_id)
-    versions = cve_data['version_data']
-
-    true_versions = []
-    for version in versions:
-        less = False
-        tag = version['version_value']
-        relation = version['version_affected'] if 'version_affected' in version else None
-
-        # 1) check if the version_data is present
-        if tag == 'not down converted' or tag == 'n/a':
-            true_versions.append((less, 'n/a'))
-
-        # 2) check if the version_data is a range
-        elif ',' in tag:
-            tags = tag.split(',')
-            before = tags[0]
-            after = tags[1]
-
-            # in case '=' is present in after or before
-            if '=' in after:
-                tag = after
-            elif '=' in before:
-                tag = before
-            else:
-                tag = after
-                less = True
-            
-            if less:
-                tag = tag.split('<')[1].strip()
-            else:
-                tag = tag.split('=')[1].strip()
-        
-            # a) check if the version has anything other than numbers
-            if len(tag.split(' ')) > 1:
-                true_versions.append((less, 'anomaly'))
-
-            # b) check if the version_data is prefixed with 'v' or 'V'
-            elif tag.startswith('v') or tag.startswith('V'):
-                true_versions.append((less, tag[1:]))
-            
-            # c) version is valid
-            else:
-                true_versions.append((less, tag))
-
-        # 3) check if the version value has '=' relation in it
-        elif '=' in tag:
-            tag = tag.split('=')[1].strip()
-
-            # a) check if the version has anything other than numbers
-            if len(tag.split(' ')) > 1:
-                true_versions.append((less, 'anomaly'))
-
-            # b) check if the version_data is prefixed with 'v' or 'V'
-            elif tag.startswith('v') or tag.startswith('V'):
-                true_versions.append((less, tag[1:]))
-            
-            # c) version is valid
-            else:
-                true_versions.append((less, tag))
-
-        # 4) check if the version value has '<' relation in it
-        elif '<' in tag:
-            tag = tag.split('<')[1].strip()
-
-            # a) check if the version has anything other than numbers
-            if len(tag.split(' ')) > 1:
-                true_versions.append((less, 'anomaly'))
-
-            # b) check if the version_data is prefixed with 'v' or 'V'
-            elif tag.startswith('v') or tag.startswith('V'):
-                less = True
-                true_versions.append((less, tag[1:]))
-            
-            # c) version is valid
-            else:
-                less = True
-                true_versions.append((less, tag))
-
-        # 5) check if the 'affected' value has '='
-        elif '=' in relation:
-            # a) check if the version has anything other than numbers
-            if len(tag.split(' ')) > 1:
-                true_versions.append((less, 'anomaly'))
-
-            # b) check if the version_data is prefixed with 'v' or 'V'
-            elif tag.startswith('v') or tag.startswith('V'):
-                true_versions.append((less, tag[1:]))
-            
-            # c) version is valid
-            else:
-                true_versions.append((less, tag))
-        
-        # 6) check if the 'affected' value has '<'
-        elif '<' in relation:
-            # a) check if the version has anything other than numbers
-            if len(tag.split(' ')) > 1:
-                true_versions.append((less, 'anomaly'))
-
-            # b) check if the version_data is prefixed with 'v' or 'V'
-            elif tag.startswith('v') or tag.startswith('V'):
-                less = True
-                true_versions.append((less, tag[1:]))
-            
-            # c) version is valid
-            else:
-                less = True
-                true_versions.append((less, tag))
-
-        # 7) tag is valid
-        else:
-            # a) check if the version has anything other than numbers
-            if len(tag.split(' ')) > 1:
-                true_versions.append((less, 'anomaly'))
-
-            # b) check if the version_data is prefixed with 'v' or 'V'
-            elif tag.startswith('v') or tag.startswith('V'):
-                true_versions.append((less, tag[1:]))
-            
-            # c) version is valid
-            else:
-                true_versions.append((less, tag))
-
-    return true_versions
-
-def affected_version_exist(repo_owner: str, repo_name: str, tag: str, less: bool) -> str:
+def affected_version_exist(repo_owner: str, repo_name: str, version: str, version_type: str) -> str:
     headers = {
         "Authorization": f"Bearer {os.getenv('GITHUB_TOKEN')}",
         "Accept": "application/vnd.github.v3+json"
     }
-    if not less:
-        url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/git/ref/tags/v{tag}"
+    tag = ""
+    # 1) First check for equality
+    if 'equal' in version_type.lower():
+        url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/git/ref/tags/v{version}"
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
-            return f"v{tag}"
-        elif response.status_code == 404:
-            return None
+            tag = version
         else:
-            print(f"Error: {response.status_code}, {response.text}")
-            return None
-    else:
-       page = 1
-       found = False
-
-       while True:
-            url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/tags"
-
-            params = {
-                "per_page": 100,  # Max allowed per page
-                "page": page
-            }
-
-            response = requests.get(url, headers=headers, params=params)
-
+            print(f"v{version} does not exist as a tag. Error: {response.status_code}, {response.text}")
+            print(f"Checking if {version} exists as a tag...")
+            url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/git/ref/tags/{version}"
+            response = requests.get(url, headers=headers)
             if response.status_code == 200:
-                tags = response.json()
-                if not tags:
-                    return None
-                for tag_info in tags:
-                    if found:
-                        return tag_info["name"]
-                    if tag_info["name"] == f"v{tag}":
-                        found = True
-                page += 1
+                tag = version
             else:
                 print(f"Error: {response.status_code}, {response.text}")
-                return None
+    # 2) If not found, check for less than
+    if not tag and 'lessThan' in version_type:
+        page = 1
+        found = False
+        while True:
+                url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/tags"
+                params = {
+                    "per_page": 100,  # Max allowed per page
+                    "page": page
+                }
+                response = requests.get(url, headers=headers, params=params)
+                if response.status_code == 200:
+                    tags = response.json()
+                    if not tags:
+                        break
+                    for tag_info in tags:
+                        if found:
+                            tag = tag_info["name"]
+                            break
+                        if tag_info["name"] == version or tag_info["name"] == f"v{version}":
+                            found = True
+                    page += 1
+                else:
+                    print(f"Error: {response.status_code}, {response.text}")
+                    break
+    
+    return tag
 
-def get_patch_content(owner: str, project: str, hash: str) -> str:
+def get_commit_data(repo_owner: str, repo_name: str, commit_hash: str) -> dict | None:
+    """
+    Fetches commit data from the GitHub API.
+    """
+    url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/commits/{commit_hash}"
+    headers = {
+        "Authorization": f"token {os.environ['GITHUB_TOKEN']}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    response = None
+    while True:
+        response = requests.get(url, headers=headers)
+
+        if response.status_code == 403:
+            print("Rate limit exceeded. Waiting for 60 seconds...")
+            time.sleep(60)
+        else:
+            break
+    
+    # 1) Check if commits still exist and their information can be extracted
+    if response.status_code == 200:
+        commit_data = response.json()
+        data = None
+        
+        # 2) Collect file changes
+        data = {
+            'url': commit_data['html_url'],
+            'msg': commit_data['commit']['message'],
+            'file_patch': []
+        }
+        for file in commit_data['files']:
+            file_patch = {
+                'file_name': file['filename'],
+                'hunks': []
+            }
+            if 'patch' in file:
+                patches = file['patch'].split('@@')
+                patches_ix = [i for i in range(2, len(patches), 2)]
+                for ix in patches_ix:
+                    file_patch['hunks'].append({
+                        'header': '@@' + patches[ix-1] + '@@',
+                        'patch': patches[ix].strip(),
+                    })
+            data['file_patch'].append(file_patch)
+        return data
+    else:
+        print("Failed to fetch commit data. Status Code:", response.status_code)
+        return None
+
+def get_patch_content(owner: str, project: str, hash: str) -> str | None:
     patch_data = get_commit_data(owner, project, hash)
     if patch_data:
         patch_content = patch_data['msg']+'\n'+'\n'.join(['\nFilename: '+file['file_name']+':\n```\n'+'\n\n'.join([hunk['header']+'\n'+hunk['patch'] for hunk in file['hunks']])+'\n```' for file in patch_data['file_patch']])
         return patch_content
     return None
+
+def scrape(url: str) -> str | None:
+    playwright = sync_playwright().start()
+    browser = playwright.chromium.launch(headless=True)
+    page = browser.new_page()
+    content = None
+    try:
+        page.goto(url)
+        try:
+            page.wait_for_load_state("networkidle", timeout=10000)
+        except Exception as e:
+            print(f"Error waiting for load state: {e}")
+        content = page.locator("body").inner_text()
+        if "sign in" in content.lower() and len(content) < 500:
+            print(f"Error: {url} is a sign in page")
+            content = None
+    except Exception as e:
+        print(f"Error: {url} has this error: {e}")
+        content = None
+    finally:
+        browser.close()
+        playwright.stop()
+    return content

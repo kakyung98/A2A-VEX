@@ -25,7 +25,7 @@ If you want to reproduce a CVE follow the steps in (A-❶) to extract CVE data, 
 2. Clone the `cvelist` repository
    ```bash
    cd src/
-   git clone https://github.com/CVEProject/cvelist.git data/cvelist/
+   git clone https://github.com/CVEProject/cvelistV5.git data/cvelistV5/
    ```
 
 3. Create `.env` in `src/` and make sure it has your `GITHUB_TOKEN`
@@ -35,7 +35,7 @@ If you want to reproduce a CVE follow the steps in (A-❶) to extract CVE data, 
    python3 ./data/scripts/cve_data.py --cve_id <cve-id> --output_path <json-file-path>
    ```
 
-5. If the above script returns `✅ Ready to reproduce!!` you can move to next step, otherwise go to [PROCESSING.md](src/data/PROCESSING.md), you might have to add some missing CVE context (mainly source code url and its version) manually. This can happen because the CVE records in `cvelist` may get modified, and some content might not be automatically extracted.
+5. If the above script returns `✅ Ready to reproduce!!` you can move to next step, otherwise go to [PROCESSING.md](src/data/PROCESSING.md), you might have to add some missing CVE context (mainly source code url and its version) manually. This can happen because the CVE records in `cvelistV5` (1) do not contain the source code information (maybe because the CVE belongs to a commercial product), (2) records were modified, or (3) our parsing script was not able to automatically extract some of the content.
 
 ### ❷ Extract Non-CVE Vulnerability Data
 
@@ -60,7 +60,7 @@ We provide the following two options to run CVE-Genie:
    ENV_PATH=.env MODEL=example_run python3 main.py --cve <cve_id> --json <json-file-path> --run-type build,exploit,verify
    ```
 
-5. The final results will be stored in `shared/<cve_id>/`
+5. The final results will be stored in `/shared/<cve_id>/`
 
 ### ❷ In a Virtual Machine
 

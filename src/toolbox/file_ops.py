@@ -10,11 +10,6 @@ def write_to_file(content: str, filename: str):
     :param filename: Relative path to the file
     :return: If successful or not
     """
-    
-    # print("Trying to write", content, "to", filename, "\nProceed? y/N")
-    # p = input()
-    # if p!='y':
-    #     return "Unable to execute, permission denied"
 
     cur_dir = os.getcwd()
     os.chdir("simulation_environments/" + os.environ['REPO_PATH'])
@@ -102,32 +97,3 @@ def get_file(file_path: str, offset: int, num_lines:int) -> str:
         return file_view
     finally:
         os.chdir(cur_dir)
-
-# @tools.tool
-# def get_file(filename: str) -> str:
-#     """
-#     This tool reads the content of a file and returns it as a string.
-#     You need to provide a relative path from the root directory of the project
-
-#     :param filename: The path to the file to read.
-#     :return: The content of the file.
-#     """
-
-#     # print(f"Trying to read {filename}...\nProceed? y/N")
-#     # p = input()
-#     # if p!='y':
-#     #     return "Unable to execute, permission denied"
-    
-#     cur_dir = os.getcwd()
-#     os.chdir("simulation_environments/" + os.environ['REPO_PATH'])
-
-#     data = ""
-#     try:
-#         with open(filename, 'r') as file:
-#             data = file.read()
-#     except FileNotFoundError:
-#         return "File does not exist"
-#     finally:
-#         os.chdir(cur_dir)
-
-#     return data

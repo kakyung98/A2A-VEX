@@ -40,11 +40,6 @@ def execute_ls_command(dir: str) -> str:
     :param dir: The directory to run the ls command in.
     :return: The output of the ls command.
     """
-
-    # print("Trying to execute: ls on", dir, "\nProceed? y/N")
-    # p = input()
-    # if p!='y':
-    #     return "Unable to execute, permission denied"
     
     return execute_command_foreground(f"ls -a {dir}")
 
@@ -63,12 +58,6 @@ def set_environment_variable(key: str, value: str, clear: bool) -> str:
     """
     
     global env
-
-    # Check for confirmation
-    # print(f"Trying to export {key}={value}, clear={clear}. \nProceed? y/N")
-    # p = input()
-    # if p.lower() != 'y':
-    #     return "Operation cancelled by user."
 
     if clear:
         env = {}
@@ -102,11 +91,6 @@ def execute_command_foreground(command: str) -> str:
     :param command: The command to run.
     :return: The output of the command.
     """
-    
-    # print("Trying to execute: ", command, "\nProceed? y/N")
-    # p = input()
-    # if p!='y':
-    #     return "Unable to execute, permission denied"
     
     stdout_log = create_unique_logfile("stdout")
     stderr_log = create_unique_logfile("stderr")
@@ -145,10 +129,6 @@ def execute_command_background(command: str) -> str:
     global background_process_list
 
     command = command.removesuffix('&')
-    # print("Trying to execute: ", command, "\nProceed? y/N")
-    # p = input()
-    # if p!='y':
-    #     return "Unable to execute, permission denied"
     
     stdout_log = create_unique_logfile("stdout")
     stderr_log = create_unique_logfile("stderr")
@@ -211,98 +191,3 @@ def get_tail_log(stdout_log: str, stderr_log: str):
         f"STDOUT Log File: {stdout_log}\nLast {min(100, stdout_len)} lines out of {stdout_len}:\n{last_stdout_lines}\n\n"
         f"STDERR Log File: {stderr_log}\nLast {min(100, stderr_len)} lines out of {stderr_len}:\n{last_stderr_lines}\n"
     )
-    
-# @tools.tool
-# def get_background_command_logs(pid: int) -> str:
-#     """
-#     This tool captures any pending logs from a background process's stdout and stderr.
-
-#     :param pid: The pid of the target process.
-#     :return: String with the outputs from the process.
-#     """
-#     print("Trying to get logs for PID: ", pid, "\nProceed? y/N")
-#     p = input()
-#     if p!='y':
-#         return "Unable to execute, permission denied"
-#     return capture_outputs(pid, 0)
-
-# def read_from_stream(stream):
-#     read = b""
-#     while True:
-#         data = stream.read(1)
-#         if not data:
-#             break
-#         read += data
-#     read = read.decode(errors='ignore')
-#     return read
-
-# def capture_outputs(pid: int, timeout: int):
-#     if pid not in Ps:
-#         return "Process not found, PID: " + str(pid) + "\n"
-    
-#     p = Ps[pid]
-#     reads = [p.stdout.fileno(), p.stderr.fileno()]
-#     ret = select.select(reads, [], [], timeout)
-#     out = f"Output for process with PID: {pid}\n"
-#     for fd in ret[0]:
-#         if fd == p.stdout.fileno():
-#             read = read_from_stream(p.stdout)
-#             out+=('stdout:\n' + read + '\n')
-#         if fd == p.stderr.fileno():
-#             read = read_from_stream(p.stderr)
-#             out+=('stderr:\n' + read + '\n')
-#         out += "###\n"
-#     if not ret[0]:
-#         out += "No new output on stdout/stderr\n"
-#     if p.poll() is None:
-#         out += "status: Process is still running, you can consider waiting.\n"
-#     else:
-#         out += f"status: Process exited with code {p.returncode}\n"
-#         del Ps[pid]
-#     return out
-
-# @tools.tool
-# def send_inputs(pid: int, inp: str) -> str:
-#     """
-#     This tool sends an input to the stdin of the given pid if it is still running.
-
-#     :param pid: The pid of the target process.
-#     :param inp: The input to send via stdin.
-#     :return: String denoting if the write was succesful or not.
-#     """
-
-#     print(f"Trying to write {inp} to {pid}...\nProceed? y/N")
-#     p = input()
-#     if p!='y':
-#         return "Unable to execute, permission denied"
-    
-#     pid = int(pid)
-#     if pid not in Ps:
-#         return "Process not found, PID: " + str(pid) + "\n"
-#     p = Ps[pid]
-#     p.stdin.write(str.encode(inp))
-#     p.stdin.flush()
-#     return f"###Write to stdin of PID {pid} finished###\n"
-
-# @tools.tool
-# def wait(tim: int) -> str:
-#     """
-#     This tool waits for the given duration in seconds.
-#     Can be used when you are waiting for subsequent outputs from a process.
-#     Will display outputs from all running processes after the wait.
-
-#     :param tim: Duration in seconds.
-#     :return: If wait was successful.
-#     """
-
-#     print("Trying to sleep for: ", tim, "\nProceed?")
-#     p = input()
-#     if p!='y':
-#         return "Unable to execute, permission denied"
-
-#     time.sleep(tim)
-#     outs = ""
-#     for pid in list(Ps.keys()):
-#         outs += capture_outputs(pid)
-
-#     return outs
