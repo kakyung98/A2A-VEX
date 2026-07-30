@@ -1,8 +1,20 @@
 # A2A-VEX
 
-An Agent-to-Agent-based CVE reproduction and evidence-driven vulnerability assessment system built on CVE-Genie.
+An Agent-to-Agent-based CVE reproduction, semantic evidence exchange, and asset-context likelihood assessment system built on CVE-Genie.
 
-A2A-VEX extends the original CVE-Genie workflow with a browser-based FastAPI service and an HTTP-based agent orchestration layer. The system extracts CVE context, prepares vulnerable environments, generates and evaluates proof-of-concept exploits, verifies reproduction results, and exposes the resulting evidence through a web dashboard.
+A2A-VEX extends the original CVE-Genie workflow with a browser-based FastAPI service, an HTTP-based agent orchestration layer, and an asset-context assessment path for CVEs that cannot be reproduced from source code.
+
+The system first extracts CVE context and evaluates whether usable source code can be obtained. When source code and reproduction metadata are available, A2A-VEX follows the original CVE-Genie workflow to prepare the vulnerable environment, generate and evaluate a proof-of-concept exploit, and verify the reproduction result.
+
+When usable source code cannot be obtained, the job is not treated as reproduced or not affected. Instead, it enters an `under_investigation`-oriented asset-context workflow. The user provides operational information about the deployed asset, while Data Processor and Builder outputs are converted into structured semantic evidence. A likelihood assessment layer then compares CVE exploitation prerequisites with the supplied asset context and estimates one of:
+
+```text
+likely_affected
+likely_not_affected
+under_investigation
+```
+
+These likelihood labels are advisory estimates. They do not replace a confirmed reproduction result or a final machine-readable VEX statement.
 
 The implementation separates the workflow into three independently running agent services:
 
@@ -12,7 +24,65 @@ The implementation separates the workflow into three independently running agent
 
 An **A2A Orchestrator** discovers these services through Agent Cards, assigns tasks, propagates a shared context, receives artifacts, and coordinates the end-to-end workflow. The original CVE-Genie execution mode remains available as a legacy fallback.
 
+## Dual Analysis Paths
+
+A2A-VEX supports two analysis paths:
+
+```text
+1. Source Reproduction Path
+   CVE input
+     → source availability check
+     → CVE-Genie environment build
+     → exploit generation
+     → verifier execution
+     → reproduction verdict
+
+2. Asset-Context Likelihood Path
+   CVE input
+     → source unavailable or unusable
+     → base state: under_investigation
+     → collect asset operational information
+     → fuse Data Processor and Builder semantic evidence
+     → compare exploitation prerequisites with asset conditions
+     → likelihood estimate
+```
+
+The asset-context path is intended for commercial, proprietary, closed-source, inaccessible, or otherwise non-reproducible products.
+
+### Semantic evidence used in the asset-context path
+
+A2A-VEX is designed to combine evidence extracted by CVE-Genie components such as:
+
+- CVE Data Processor outputs
+- `KnowledgeBuilder` vulnerability context
+- `PreReqBuilder` exploitation prerequisites
+- advisory and CWE-derived attack semantics
+- protocol, service, feature, authentication, privilege, and interaction requirements
+- A2A task artifacts and structured claims
+- user-provided asset operational context
+
+The resulting semantic profile may include:
+
+```text
+attack vector
+required protocol
+required service
+required port
+authentication requirement
+required privilege
+user interaction requirement
+required feature
+remote reachability requirement
+runtime prerequisite
+deployment assumption
+impact type
+```
+
+The asset input is normalized into the same condition vocabulary so that CVE requirements and asset conditions can be compared explicitly.
+
 ---
+
+
 
 # 📜 Results
 
@@ -303,8 +373,11 @@ The current web service supports:
 - Defensive handling of incomplete CVE records
 - Per-job input and log directories
 - Validation of extracted reproduction context
-- `needs_input` handling for incomplete records
+- `needs_input` handling when source code exists but reproduction metadata is incomplete
+- `needs_asset_input` handling when usable source code cannot be obtained
 - Browser-based JSON editing and job resumption
+- Browser-based asset operational context entry
+- Semantic likelihood assessment for source-unavailable CVEs
 - Asynchronous execution of the existing CVE-Genie CLI
 - Job status and live log monitoring
 - Final reproduction verdict parsing
@@ -320,7 +393,12 @@ FastAPI Web Service
   ↓ Background Task
 Web Worker
   ├── CVE data extraction
-  ├── input validation
+  ├── source availability assessment
+  ├── reproduction input validation
+  ├── asset-context collection when source is unavailable
+  ├── semantic profile generation
+  ├── semantic evidence fusion
+  ├── likelihood assessment worker
   └── A2A Orchestrator
         ├── Environment Agent :8101
         ├── Exploit Agent     :8102
@@ -348,6 +426,8 @@ legacy
 
 ## C-0) Functional Capabilities
 
+The semantic asset-assessment backend, persistence layer, background evaluation worker, REST endpoints, and likelihood dashboard card are implemented in the current branch.
+
 A2A-VEX provides the following system-level functions.
 
 ### CVE intake and context preparation
@@ -358,12 +438,16 @@ A2A-VEX provides the following system-level functions.
 - Preserves partial extraction results when some reproduction metadata is unavailable
 - Creates an isolated working directory for each submitted analysis
 
-### Reproduction readiness assessment
+### Source availability and reproduction readiness assessment
 
-- Checks whether the extracted record contains enough information to prepare a vulnerable target
-- Evaluates the availability of a source repository, vulnerable version, tag, commit, checkout reference, and patch evidence
-- Separates automatically executable jobs from jobs requiring analyst input
-- Reports missing reproduction fields through the dashboard
+- Checks whether a usable source repository or source archive can be identified
+- Optionally probes remote repositories before starting reproduction
+- Evaluates the availability of a vulnerable version, tag, commit, checkout reference, and patch evidence
+- Separates source-reproducible jobs from source-unavailable jobs
+- Sends incomplete but source-reproducible jobs to `needs_input`
+- Sends source-unavailable jobs to `needs_asset_input`
+- Preserves `reproduction_status=not_attempted` when source-based execution is not performed
+- Reports missing reproduction or asset-context fields through the dashboard
 
 ### Manual context completion
 
@@ -372,6 +456,107 @@ A2A-VEX provides the following system-level functions.
 - Validates edited JSON before accepting it
 - Resumes the same job without creating a new analysis record
 - Retains the original job ID, log path, and analysis history
+
+### Asset-context likelihood assessment
+
+When source-based reproduction cannot be performed, A2A-VEX keeps the case in an investigation-oriented state and requests operational context from the user.
+
+The current asset form collects information such as:
+
+```text
+product and vendor
+installed version
+operating system and architecture
+deployment type
+service and process state
+vulnerable feature state
+component reachability
+internet exposure
+listening ports and reachable networks
+authentication requirements
+patch state
+firewall, segmentation, and IDS/IPS controls
+supporting evidence notes
+```
+
+This information is not interpreted in isolation. The implemented decision layer builds a normalized semantic prerequisite profile from the extracted CVE data and any structured A2A claims already stored for the job. It then fuses those claims with user-provided asset context before running the likelihood assessment.
+
+Automatic structured Claim emission from every CVE-Genie Data Processor and Builder is not yet complete. The current implementation therefore uses the claims that have already been persisted for the job and augments them with normalized asset-context claims.
+
+Example comparison:
+
+```text
+CVE semantic prerequisite:
+- remote management HTTP service required
+- unauthenticated access required
+- file-upload feature required
+- attacker reachability required
+
+Asset context:
+- management service running
+- authentication enforced
+- file upload disabled
+- service reachable only from isolated management network
+
+Likelihood result:
+- likely_not_affected
+- unmet prerequisites: unauthenticated access, file upload, relevant reachability
+- base investigation state remains under_investigation until stronger evidence is available
+```
+
+The implemented likelihood assessment preserves:
+
+- matched prerequisites
+- unmatched prerequisites
+- unknown prerequisites
+- supporting A2A claim IDs
+- contradicting claim IDs
+- confidence score
+- explanation
+- provenance references
+
+The likelihood layer must not infer `not_affected` merely because a firewall, IDS/IPS, authentication mechanism, or network segmentation exists. Those controls affect exposure and confidence but do not remove the vulnerability.
+
+### A2A semantic evidence exchange
+
+The A2A layer is used not only to separate services but also to exchange structured semantic evidence.
+
+The evidence-fusion service normalizes claims into fields such as:
+
+```text
+claim_id
+context_id
+task_id
+agent_name
+skill_id
+subject
+predicate
+value
+confidence
+evidence_type
+artifact_id
+source_reference
+supports
+contradicts
+```
+
+Example predicates include:
+
+```text
+requires_remote_reachability
+requires_authentication
+requires_service
+requires_protocol
+requires_feature
+requires_user_interaction
+requires_privilege
+service_running
+authentication_enforced
+feature_enabled
+component_reachable
+```
+
+A semantic decision service maps CVE requirements to asset facts and evaluates condition compatibility.
 
 ### A2A orchestration
 
@@ -411,7 +596,10 @@ confirmed
 not_reproduced
 inconclusive
 unknown
+not_attempted
 ```
+
+`not_attempted` means source-based reproduction was not performed. It must not be interpreted as `not_reproduced` or `not_affected`.
 
 ### Job and evidence management
 
@@ -427,10 +615,16 @@ unknown
 The dashboard provides:
 
 - Total-job, running-job, reproduced-job, and review-required summaries
-- A recent-job queue with CVE ID, job ID, and current status
-- A stage indicator for queueing, extraction, validation, execution, and completion
+- A recent-job queue showing the 10 most recent analyses with CVE ID, job ID, and current status
+- A stage indicator for queueing, extraction, validation, assessment, and completion
 - Separate job-status and reproduction-verdict panels
 - Exploitability, verifier result, and final-reason fields
+- An asset operational-context form for source-unavailable jobs
+- A likelihood result card showing `likely_affected`, `likely_not_affected`, or `under_investigation`
+- Assessment confidence and the base VEX state
+- Matched, unmatched, and unknown prerequisite counts
+- Per-condition expected and observed values
+- Assessment reasons
 - Live execution logs
 - Missing-field guidance
 - A browser-based JSON editor
@@ -461,7 +655,10 @@ src/
 │   │   ├── reproduction_result_service.py
 │   │   ├── result_service.py
 │   │   ├── runner_service.py
-│   │   └── validation_service.py
+│   │   ├── validation_service.py
+│   │   ├── semantic_profile_service.py
+│   │   ├── evidence_fusion_service.py
+│   │   └── likelihood_assessment_service.py
 │   ├── workers/
 │   │   ├── __init__.py
 │   │   └── job_worker.py
@@ -613,15 +810,31 @@ Enter CVE ID
   ↓
 Create an isolated job
   ↓
-Extract CVE context
+Extract CVE context and semantic evidence
   ↓
-Validate repository, version, and vulnerability data
-  ├── sufficient → run CVE-Genie
-  ├── incomplete → needs_input
-  └── unsupported → stop with an explanation
-  ↓
-Discover A2A agent services
-  ↓
+Check source-code availability
+  ├── source available
+  │     ↓
+  │   validate reproduction metadata
+  │     ├── sufficient → run CVE-Genie
+  │     └── incomplete → needs_input
+  │
+  └── source unavailable or unusable
+        ↓
+      needs_asset_input
+        ↓
+      base investigation state: under_investigation
+        ↓
+      collect asset operational context
+        ↓
+      fuse Data Processor and Builder evidence
+        ↓
+      compare semantic prerequisites
+        ↓
+      likely_affected / likely_not_affected /
+      under_investigation
+
+Source reproduction path:
 Environment Agent
   ↓
 Exploit Agent
@@ -642,8 +855,10 @@ queued
 extracting
 validating
 needs_input
+needs_asset_input
 ready
 running
+assessing_asset
 succeeded
 failed
 unsupported
@@ -661,9 +876,25 @@ confirmed
 not_reproduced
 inconclusive
 unknown
+not_attempted
 ```
 
 The dashboard displays both values separately.
+
+For asset-context jobs, the dashboard also displays:
+
+```text
+base_vex_status
+likelihood_status
+asset_assessment_status
+asset_assessment_confidence
+matched_conditions
+unmatched_conditions
+unknown_conditions
+assessment reasons
+```
+
+The base VEX state remains `under_investigation` even when the advisory likelihood is `likely_affected` or `likely_not_affected`.
 
 Example:
 
@@ -710,6 +941,10 @@ The updated extractor saves partial JSON instead of crashing when optional field
 ---
 
 ## C-❼) Web API Endpoints
+
+The reproduction and asset-context endpoints described below are implemented in the current web-service branch.
+
+
 
 ### Create a job
 
@@ -805,6 +1040,82 @@ POST /api/jobs/{job_id}/resume
 curl -X POST http://localhost:8000/api/jobs/JOB_ID/resume
 ```
 
+### Read asset operational input
+
+```http
+GET /api/jobs/{job_id}/asset-input
+```
+
+### Save asset operational input
+
+```http
+PUT /api/jobs/{job_id}/asset-input
+```
+
+Example request body:
+
+```json
+{
+  "asset": {
+    "product_name": "Example Server",
+    "vendor": "Example Corporation",
+    "installed_version": "4.2.1",
+    "deployment_type": "server",
+    "runtime": {
+      "service_running": true,
+      "vulnerable_feature_enabled": false,
+      "component_loaded": true,
+      "component_reachable": false
+    },
+    "exposure": {
+      "internet_exposed": false,
+      "reachable_networks": ["management"],
+      "listening_ports": [443],
+      "authentication_required": true
+    },
+    "security_controls": {
+      "firewall_enabled": true,
+      "network_segmentation": true,
+      "ids_ips_enabled": true,
+      "compensating_controls": []
+    },
+    "patch_status": "unknown",
+    "evidence": [],
+    "evidence_notes": "Operational context supplied by the asset operator."
+  }
+}
+```
+
+### Start semantic asset assessment
+
+```http
+POST /api/jobs/{job_id}/assess-asset
+```
+
+The endpoint queues the background asset-assessment worker and returns the queued job state. The completed likelihood result is available through:
+
+```http
+GET /api/jobs/{job_id}
+GET /api/jobs/{job_id}/asset-input
+```
+
+The stored assessment data includes:
+
+```text
+base_vex_status
+likelihood_status
+asset_assessment_status
+confidence
+matched_conditions
+unmatched_conditions
+unknown_conditions
+supporting_claim_ids
+contradicting_claim_ids
+reasons
+semantic_profile
+evidence_claims
+```
+
 ### Get result metadata and artifacts
 
 ```http
@@ -840,18 +1151,24 @@ When a job is submitted, the worker performs the following steps:
 4. Insert the job into SQLite
 5. Run data/scripts/cve_data.py
 6. Save complete or partial CVE JSON
-7. Validate reproduction context
-8. Pause with needs_input when required
-9. Select `a2a` or `legacy` execution mode
-10. Run `a2a_orchestrator.py` in A2A mode
-11. Discover agent services through Agent Cards
-12. Submit tasks with shared context and unique task IDs
-13. Collect task states and returned artifacts
-14. Store stdout, stderr, and A2A communication records
-15. Locate the CVE-Genie result directory
-16. Parse the final Results dictionary
-17. Store the reproduction verdict
-18. Expose status, verdict, logs, and artifacts through the API
+7. Check source repository or source archive availability
+8. If source is available, validate reproduction context
+9. Pause with `needs_input` when source exists but reproduction metadata is incomplete
+10. Pause with `needs_asset_input` when usable source cannot be obtained
+11. Preserve `reproduction_status=not_attempted` for the asset-context path
+12. Collect user-supplied asset operational context
+13. Fuse CVE Data Processor and Builder semantic evidence
+14. Estimate `likely_affected`, `likely_not_affected`, or `under_investigation`
+15. For source-reproducible jobs, select `a2a` or `legacy` execution mode
+16. Run `a2a_orchestrator.py` in A2A mode
+17. Discover agent services through Agent Cards
+18. Submit tasks with shared context and unique task IDs
+19. Collect task states and returned artifacts
+20. Store stdout, stderr, and A2A communication records
+21. Locate the CVE-Genie result directory
+22. Parse the final Results dictionary
+23. Store the reproduction verdict or likelihood assessment
+24. Expose status, verdict, likelihood, logs, and artifacts through the API
 ```
 
 Extraction command:
@@ -982,11 +1299,17 @@ success=True
 
 success=False
 → reproduction_status=not_reproduced
-→ exploitable=false
 → verifier_passed=false
+→ exploitability was not demonstrated
+
+A failed reproduction must not automatically be treated as proof that exploitation is impossible. The preferred long-term model keeps reproduction outcome and exploitability assessment separate.
 
 missing or ambiguous final result
 → reproduction_status=inconclusive or unknown
+
+source-based reproduction not performed
+→ reproduction_status=not_attempted
+→ exploitable=null
 ```
 
 The parser also supports fallback log markers such as:
@@ -1018,6 +1341,22 @@ exit_code
 run_type
 missing_fields_json
 reproduction_status
+analysis_mode
+source_availability
+asset_input_json
+asset_assessment_status
+asset_impact_status
+asset_assessment_confidence
+asset_assessment_reasons_json
+semantic_profile_json
+evidence_claims_json
+matched_conditions_json
+unmatched_conditions_json
+unknown_conditions_json
+supporting_claim_ids_json
+contradicting_claim_ids_json
+base_vex_status
+likelihood_status
 exploitable
 verifier_passed
 final_reason
@@ -1025,6 +1364,16 @@ created_at
 updated_at
 started_at
 finished_at
+```
+
+Current asset-assessment workflow states are:
+
+```text
+pending
+sufficient
+insufficient
+assessing
+assessed
 ```
 
 Existing databases are migrated automatically when the FastAPI application starts.
@@ -1145,6 +1494,48 @@ Run:
 
 ```bash
 python BACKFILL-EXISTING-RESULTS.py
+```
+
+### `/api/jobs` returns a Pydantic validation error for `asset_assessment_status`
+
+Allowed values are:
+
+```text
+pending
+sufficient
+insufficient
+assessing
+assessed
+```
+
+Normalize older prototype values in SQLite:
+
+```bash
+python - <<'PY'
+from cve_genie_web.database import db_session, initialize_database
+
+initialize_database()
+
+mapping = {
+    "waiting_for_input": "pending",
+    "queued": "pending",
+    "completed": "assessed",
+    "failed": "insufficient",
+}
+
+with db_session() as connection:
+    for old_value, new_value in mapping.items():
+        connection.execute(
+            '''
+            UPDATE jobs
+            SET asset_assessment_status = ?
+            WHERE asset_assessment_status = ?
+            ''',
+            (new_value, old_value),
+        )
+
+print("Asset assessment statuses normalized.")
+PY
 ```
 
 ### Static resources are cached
@@ -1345,27 +1736,51 @@ CVE ID
   ↓
 CVE Data Extraction
   ↓
-Input Validation
-  ├── incomplete → needs_input
-  └── sufficient → A2A Orchestrator
-                      ↓
-                Environment Agent
-                ├── KnowledgeBuilder
-                ├── PreReqBuilder
-                ├── RepoBuilder
-                └── RepoCritic
-                      ↓
-                  Exploit Agent
-                ├── Exploiter
-                └── ExploitCritic
-                      ↓
-               Verification Agent
-                ├── CTFVerifier
-                └── SanityGuy
-                      ↓
-             Reproduction Verdict
-                      ↓
-          Logs, Artifacts, and Evidence
+Semantic Evidence Preparation
+  ├── CVE Data Processor
+  ├── KnowledgeBuilder
+  └── PreReqBuilder
+  ↓
+Source Availability Assessment
+  ├── Source available
+  │     ↓
+  │   Reproduction Input Validation
+  │     ├── incomplete → needs_input
+  │     └── sufficient → A2A Orchestrator
+  │                         ↓
+  │                   Environment Agent
+  │                   ├── KnowledgeBuilder
+  │                   ├── PreReqBuilder
+  │                   ├── RepoBuilder
+  │                   └── RepoCritic
+  │                         ↓
+  │                     Exploit Agent
+  │                   ├── Exploiter
+  │                   └── ExploitCritic
+  │                         ↓
+  │                  Verification Agent
+  │                   ├── CTFVerifier
+  │                   └── SanityGuy
+  │                         ↓
+  │                Reproduction Verdict
+  │
+  └── Source unavailable
+        ↓
+      needs_asset_input
+        ↓
+      Base status: under_investigation
+        ↓
+      Asset Operational Context
+        ↓
+      A2A Semantic Evidence Fusion
+        ↓
+      Prerequisite Compatibility Assessment
+        ↓
+      likely_affected /
+      likely_not_affected /
+      under_investigation
+        ↓
+      Logs, Claims, Artifacts, and Provenance
 ```
 
 The A2A Orchestrator does not replace the original CVE-Genie logic. It adds service boundaries and a task-oriented communication layer around the existing capabilities.
@@ -1411,44 +1826,65 @@ CVE_GENIE_VERIFICATION_AGENT_URL=http://127.0.0.1:8103
 
 # G) Current Functional Scope
 
-The current implementation is intended as a research prototype for evidence-driven CVE reproduction.
+The current implementation is a functional research prototype for evidence-driven CVE reproduction and source-unavailable asset-context likelihood assessment.
 
 It currently supports:
 
 - Local CVE List V5-based context extraction
 - Web-managed CVE analysis jobs
 - Partial-input preservation and analyst-assisted completion
+- Source availability assessment and dual-path routing
+- `needs_input` handling for incomplete source-reproduction jobs
+- `needs_asset_input` handling for source-unavailable jobs
+- Browser-based asset operational-context collection
+- SQLite persistence for asset input, semantic profiles, normalized claims, condition evaluations, and likelihood results
+- Automatic SQLite column migration for existing databases
+- Semantic CVE prerequisite profile generation
+- A2A evidence claim normalization and confidence-weighted fusion
+- Contradiction detection for competing evidence
+- Background asset likelihood assessment through `assess_asset_job()`
+- Advisory `likely_affected`, `likely_not_affected`, and `under_investigation` results
+- Preservation of `base_vex_status=under_investigation` for likelihood-only cases
+- Preservation of `reproduction_status=not_attempted` when source execution is not performed
+- Likelihood confidence, reasons, and condition-level results in the dashboard
 - HTTP-based A2A discovery and task delegation
 - Environment, exploit, and verification stage separation
 - Legacy CVE-Genie execution as a fallback mode
-- Job, log, artifact, and verdict persistence
+- Job, log, artifact, verdict, and likelihood persistence
 - Browser-based monitoring and result review
 
 The current implementation does not yet provide:
 
+- Automatic normalized Claim emission from every Data Processor, `KnowledgeBuilder`, `PreReqBuilder`, and related Builder component
+- Direct collection of live asset evidence through SSH, EDR, CMDB, SBOM platforms, configuration managers, or network scanners
+- Final VEX assertions derived automatically from likelihood estimates
+- Official machine-readable VEX document generation
 - Strong per-job exploit isolation
 - Multi-user authentication and authorization
 - Distributed worker recovery
 - Durable message queues
-- Official VEX document generation
 - Full interoperability with every optional feature of the upstream A2A specification
+
+A firewall, IDS/IPS, authentication control, or network segmentation may reduce exposure, but it does not by itself prove that a vulnerable component is absent, fixed, or not affected. Likelihood results must remain separate from final VEX assertions.
 
 # H) Recommended Development Roadmap
 
-The current A2A-VEX implementation is a functional research prototype.
+The next development priorities are:
 
-1. Replace the application-oriented message model with the official upstream A2A SDK where strict interoperability is required.
-2. Add durable task persistence, polling, cancellation, and failure recovery.
-3. Display active agent, context ID, task ID, skill ID, and returned artifacts in the dashboard.
-4. Add Server-Sent Events or WebSocket-based live updates.
-5. Replace FastAPI `BackgroundTasks` with Redis and Celery or RQ.
-6. Run each task in a disposable container or VM.
-7. Add evidence provenance linking input records, messages, artifacts, critic decisions, and the final verdict.
-8. Generate VEX documents using `affected`, `not_affected`, `fixed`, and `under_investigation`.
-9. Add authentication and per-user job history.
-10. Replace SQLite with PostgreSQL.
-11. Add resource quotas, retention rules, and automatic cleanup.
-12. Add automated tests for discovery, task transitions, failure propagation, and legacy fallback.
+1. Add automatic normalized Claim emission to the CVE Data Processor, `KnowledgeBuilder`, `PreReqBuilder`, `RepoBuilder`, and critic components.
+2. Attach stronger provenance links between raw CVE records, A2A messages, generated artifacts, normalized claims, condition evaluations, and final outcomes.
+3. Add direct evidence adapters for SBOM inventories, service managers, process lists, firewall rules, configuration files, EDR, CMDB, and network scanners.
+4. Display active agent, context ID, task ID, skill ID, claim provenance, and returned artifacts in the dashboard.
+5. Add Server-Sent Events or WebSocket-based live updates.
+6. Replace FastAPI `BackgroundTasks` with Redis and Celery or RQ.
+7. Add durable task persistence, retry policies, cancellation, polling, and worker failure recovery.
+8. Run each reproduction task in a disposable container or VM with strict resource and network controls.
+9. Define evidentiary thresholds for promoting an investigation result to `affected`, `not_affected`, or `fixed`.
+10. Generate machine-readable VEX documents only when those evidentiary requirements are satisfied.
+11. Add authentication, authorization, and per-user job history.
+12. Replace SQLite with PostgreSQL for multi-worker deployments.
+13. Add resource quotas, retention rules, and automatic cleanup.
+14. Add automated tests for source routing, semantic profile generation, evidence fusion, contradiction handling, likelihood thresholds, task transitions, failure propagation, and legacy fallback.
 
 ---
 
