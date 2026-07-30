@@ -343,6 +343,99 @@ legacy
 
 > ‼️ The current prototype runs the API server, CVE-Genie, the vulnerable target, exploit process, and verifier inside the same Dev Container. It is a functional prototype, not a security sandbox.
 
+
+---
+
+## C-0) Functional Capabilities
+
+A2A-VEX provides the following system-level functions.
+
+### CVE intake and context preparation
+
+- Accepts a syntactically valid CVE identifier from the web dashboard or API
+- Loads the corresponding CVE List V5 record from the local `cvelistV5` repository
+- Extracts descriptions, CWE information, references, patch commits, and affected-version information
+- Preserves partial extraction results when some reproduction metadata is unavailable
+- Creates an isolated working directory for each submitted analysis
+
+### Reproduction readiness assessment
+
+- Checks whether the extracted record contains enough information to prepare a vulnerable target
+- Evaluates the availability of a source repository, vulnerable version, tag, commit, checkout reference, and patch evidence
+- Separates automatically executable jobs from jobs requiring analyst input
+- Reports missing reproduction fields through the dashboard
+
+### Manual context completion
+
+- Displays the generated CVE input JSON in the browser
+- Allows analysts to add or correct repository, version, build, and vulnerability context
+- Validates edited JSON before accepting it
+- Resumes the same job without creating a new analysis record
+- Retains the original job ID, log path, and analysis history
+
+### A2A orchestration
+
+- Discovers the Environment, Exploit, and Verification agents through Agent Cards
+- Verifies that each agent advertises the expected skill
+- Creates a shared `context_id` for the end-to-end analysis
+- Assigns a unique `task_id` to each delegated stage
+- Transfers input artifacts and stage outputs between agents
+- Records task states, messages, and returned artifacts
+- Propagates agent failures to the web-managed job state
+
+### Environment preparation
+
+- Organizes CVE knowledge and affected-version evidence
+- Determines build tools, packages, services, and runtime prerequisites
+- Obtains and checks out the target repository
+- Builds or prepares the vulnerable software environment
+- Reviews the environment before exploit execution
+
+### Exploit generation and evaluation
+
+- Generates or adapts a proof-of-concept for the selected CVE
+- Executes the exploit against the prepared target
+- Collects runtime output and intermediate artifacts
+- Uses critic review to assess whether the observed behavior is relevant to the target vulnerability
+
+### Verification and final assessment
+
+- Generates or runs an automated verifier
+- Evaluates whether the exploit result satisfies the reproduction condition
+- Performs a final consistency review
+- Separates workflow completion from vulnerability reproduction
+- Produces one of the following reproduction states:
+
+```text
+confirmed
+not_reproduced
+inconclusive
+unknown
+```
+
+### Job and evidence management
+
+- Stores job metadata in SQLite
+- Stores per-job inputs, logs, and result references
+- Exposes live execution logs through the dashboard and API
+- Discovers generated result directories and artifacts
+- Preserves A2A communication records for later inspection
+- Supports historical result backfilling for existing jobs
+
+### Dashboard presentation
+
+The dashboard provides:
+
+- Total-job, running-job, reproduced-job, and review-required summaries
+- A recent-job queue with CVE ID, job ID, and current status
+- A stage indicator for queueing, extraction, validation, execution, and completion
+- Separate job-status and reproduction-verdict panels
+- Exploitability, verifier result, and final-reason fields
+- Live execution logs
+- Missing-field guidance
+- A browser-based JSON editor
+- Save-and-resume controls for incomplete jobs
+
 ---
 
 ## C-❶) Web Service Directory Structure
@@ -1315,7 +1408,32 @@ CVE_GENIE_VERIFICATION_AGENT_URL=http://127.0.0.1:8103
 
 ---
 
-# G) Recommended Development Roadmap
+
+# G) Current Functional Scope
+
+The current implementation is intended as a research prototype for evidence-driven CVE reproduction.
+
+It currently supports:
+
+- Local CVE List V5-based context extraction
+- Web-managed CVE analysis jobs
+- Partial-input preservation and analyst-assisted completion
+- HTTP-based A2A discovery and task delegation
+- Environment, exploit, and verification stage separation
+- Legacy CVE-Genie execution as a fallback mode
+- Job, log, artifact, and verdict persistence
+- Browser-based monitoring and result review
+
+The current implementation does not yet provide:
+
+- Strong per-job exploit isolation
+- Multi-user authentication and authorization
+- Distributed worker recovery
+- Durable message queues
+- Official VEX document generation
+- Full interoperability with every optional feature of the upstream A2A specification
+
+# H) Recommended Development Roadmap
 
 The current A2A-VEX implementation is a functional research prototype.
 
@@ -1334,7 +1452,7 @@ The current A2A-VEX implementation is a functional research prototype.
 
 ---
 
-# H) Quick Start
+# I) Quick Start
 
 ```bash
 cd /workspaces/A2A-VEX/src
