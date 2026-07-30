@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CVE-Genie Web</title>
+  <link rel="stylesheet" href="/static/style.css?v=5">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">CG</div>
+        <div>
+          <strong>CVE-Genie</strong>
+          <span>Web Console</span>
+        </div>
+      </div>
+      <nav class="side-nav">
+        <a class="nav-item active" href="#dashboard">Dashboard</a>
+        <a class="nav-item" href="/docs" target="_blank">API Docs</a>
+      </nav>
+      <div class="sidebar-footer">
+        <span class="system-dot"></span>
+        <div>
+          <strong>System Ready</strong>
+          <small>FastAPI backend connected</small>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content" id="dashboard">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">AUTOMATED CVE REPRODUCTION</p>
+          <h1>CVE Analysis Dashboard</h1>
+          <p class="subtitle">
+            Track job execution separately from the final exploit reproduction verdict.
+          </p>
+        </div>
+        <a class="docs-button" href="/docs" target="_blank">Open Swagger</a>
+      </header>
+
+      <section class="hero-card">
+        <div class="hero-copy">
+          <span class="section-label">NEW ANALYSIS</span>
+          <h2>Start a CVE-VEX Analysis</h2>
+          <p>
+            The final verdict is extracted from CVE-VEX verifier and
+            SanityGuy output after the workflow completes.
+          </p>
+        </div>
+
+        <form id="job-form" class="job-form">
+          <label for="cve-id">CVE identifier</label>
+          <div class="input-group">
+            <input
+              id="cve-id"
+              name="cve_id"
+              pattern="CVE-[0-9]{4}-[0-9]{4,}"
+              placeholder="e.g., CVE-2021-44228"
+              autocomplete="off"
+              required
+            >
+            <button class="primary-button" type="submit">
+              Run CVE-VEX
+            </button>
+          </div>
+          <p id="form-message" class="form-message"></p>
+        </form>
+      </section>
+
+      <section class="stats-grid">
+        <article class="stat-card">
+          <span>Total Jobs</span><strong id="total-count">0</strong>
+          <small>All submitted analyses</small>
+        </article>
+        <article class="stat-card">
+          <span>Running</span><strong id="running-count">0</strong>
+          <small>Queued or in progress</small>
+        </article>
+        <article class="stat-card">
+          <span>Reproduced</span><strong id="success-count">0</strong>
+          <small>Verifier-confirmed CVEs</small>
+        </article>
+        <article class="stat-card">
+          <span>Review Required</span><strong id="failed-count">0</strong>
+          <small>Needs input, failed, or inconclusive</small>
+        </article>
+      </section>
+
+      <section class="workspace-grid">
+        <article class="panel jobs-panel">
+          <div class="panel-header">
+            <div>
+              <span class="section-label">JOB QUEUE</span>
+              <h2>Recent jobs</h2>
+            </div>
+            <button id="refresh-button" class="secondary-button" type="button">
+              Refresh
+            </button>
+          </div>
+          <div id="jobs" class="jobs-list">
+            <div class="empty-state">No jobs yet.</div>
+          </div>
+        </article>
+
+        <article class="panel details-panel">
+          <div class="panel-header">
+            <div>
+              <span class="section-label">SELECTED JOB</span>
+              <h2>Execution details</h2>
+            </div>
+            <span id="selected-status" class="status-badge neutral">No job</span>
+          </div>
+
+          <div id="progress-steps" class="progress-steps">
+            <div class="step" data-step="queued"><span>1</span><small>Queued</small></div>
+            <div class="step" data-step="extracting"><span>2</span><small>Extract</small></div>
+            <div class="step" data-step="validating"><span>3</span><small>Validate</small></div>
+            <div class="step" data-step="running"><span>4</span><small>Execute</small></div>
+            <div class="step" data-step="succeeded"><span>5</span><small>Complete</small></div>
+          </div>
+
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span>CVE ID</span><strong id="detail-cve">-</strong>
+            </div>
+            <div class="detail-item">
+              <span>Job Status</span><strong id="detail-job-status">-</strong>
+            </div>
+            <div class="detail-item">
+              <span>Job ID</span><strong id="detail-job">-</strong>
+            </div>
+            <div class="detail-item">
+              <span>Stage</span><strong id="detail-stage">-</strong>
+            </div>
+          </div>
+
+          <section class="verdict-card">
+            <div class="verdict-heading">
+              <div>
+                <span class="section-label">REPRODUCTION VERDICT</span>
+                <h3 id="verdict-title">Not evaluated</h3>
+              </div>
+              <span id="verdict-badge" class="verdict-badge unknown">UNKNOWN</span>
+            </div>
+
+            <div class="verdict-grid">
+              <div>
+                <span>Exploitable</span>
+                <strong id="verdict-exploitable">-</strong>
+              </div>
+              <div>
+                <span>Verifier</span>
+                <strong id="verdict-verifier">-</strong>
+              </div>
+              <div class="verdict-reason">
+                <span>Final reason</span>
+                <strong id="verdict-reason">No final result yet.</strong>
+              </div>
+            </div>
+          </section>
+
+          <section id="input-editor" class="input-editor hidden">
+            <div class="editor-heading">
+              <div>
+                <span class="section-label">MANUAL CONTEXT</span>
+                <h3>Complete reproduction input</h3>
+              </div>
+              <button id="resume-button" class="primary-inline-button" type="button">
+                Save and Resume
+              </button>
+            </div>
+            <p id="missing-fields"></p>
+            <textarea id="input-json-editor" spellcheck="false"></textarea>
+            <p id="editor-message" class="editor-message"></p>
+          </section>
+
+          <details class="raw-details">
+            <summary>Raw job metadata</summary>
+            <pre id="job-detail">Select a job.</pre>
+          </details>
+        </article>
+      </section>
+
+      <section class="panel log-panel">
+        <div class="panel-header">
+          <div>
+            <span class="section-label">LIVE OUTPUT</span>
+            <h2>Execution log</h2>
+          </div>
+          <span class="live-indicator"><span></span>Live</span>
+        </div>
+        <pre id="job-log">Select a job to view its log.</pre>
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/app.js?v=5"></script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+.verdict-card {
+  margin-top: 16px;
+  padding: 18px;
+  border: 1px solid #e2e7f0;
+  border-radius: 13px;
+  background: linear-gradient(180deg, #fafbfe, #f5f7fb);
+}
+
+.verdict-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.verdict-heading h3 {
+  margin: 5px 0 0;
+  font-size: 18px;
+}
+
+.verdict-badge {
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.verdict-badge.confirmed,
+.job-status.confirmed {
+  color: #126d49;
+  background: #d9f6e8;
+}
+
+.verdict-badge.not-reproduced,
+.job-status.not-reproduced {
+  color: #a13d46;
+  background: #ffe1e4;
+}
+
+.verdict-badge.inconclusive,
+.job-status.inconclusive {
+  color: #855800;
+  background: #ffedbd;
+}
+
+.verdict-badge.unknown,
+.job-status.unknown {
+  color: #697389;
+  background: #e9edf3;
+}
+
+.verdict-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.verdict-grid > div {
+  padding: 13px;
+  border: 1px solid #e2e6ee;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.verdict-grid span {
+  display: block;
+  margin-bottom: 5px;
+  color: #788298;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.verdict-grid strong {
+  display: block;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.verdict-reason {
+  grid-column: 1 / -1;
+}
