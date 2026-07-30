@@ -2,26 +2,53 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
   <title>A2A-VEX Web</title>
-  <link rel="stylesheet" href="/static/style.css?v=5">
+
+  <link
+    rel="stylesheet"
+    href="/static/style.css?v=8"
+  >
 </head>
+
 <body>
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-mark">CG</div>
+
         <div>
           <strong>A2A-VEX</strong>
           <span>Web Console</span>
         </div>
       </div>
+
       <nav class="side-nav">
-        <a class="nav-item active" href="#dashboard">Dashboard</a>
-        <a class="nav-item" href="/docs" target="_blank">API Docs</a>
+        <a
+          class="nav-item active"
+          href="#dashboard"
+        >
+          Dashboard
+        </a>
+
+        <a
+          class="nav-item"
+          href="/docs"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          API Docs
+        </a>
       </nav>
+
       <div class="sidebar-footer">
         <span class="system-dot"></span>
+
         <div>
           <strong>System Ready</strong>
           <small>FastAPI backend connected</small>
@@ -29,63 +56,126 @@
       </div>
     </aside>
 
-    <main class="main-content" id="dashboard">
+    <main
+      class="main-content"
+      id="dashboard"
+    >
       <header class="topbar">
         <div>
-          <p class="eyebrow">AUTOMATED CVE REPRODUCTION</p>
+          <p class="eyebrow">
+            EVIDENCE-DRIVEN CVE ASSESSMENT
+          </p>
+
           <h1>CVE Analysis Dashboard</h1>
+
           <p class="subtitle">
-            Track job execution separately from the final exploit reproduction verdict.
+            Reproduce CVEs from source code or assess operational
+            impact when source code is unavailable.
           </p>
         </div>
-        <a class="docs-button" href="/docs" target="_blank">Open Swagger</a>
+
+        <a
+          class="docs-button"
+          href="/docs"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Open Swagger
+        </a>
       </header>
 
       <section class="hero-card">
         <div class="hero-copy">
-          <span class="section-label">NEW ANALYSIS</span>
-          <h2>Start a CVE-VEX Analysis</h2>
+          <span class="section-label">
+            NEW ANALYSIS
+          </span>
+
+          <h2>A2A-VEX Analysis</h2>
+
           <p>
-            The final verdict is extracted from CVE-VEX verifier and
-            SanityGuy output after the workflow completes.
+            When source code is available, A2A-VEX runs the
+            CVE-Genie reproduction workflow. When source code
+            is unavailable, it requests operational asset
+            information for an impact assessment.
           </p>
         </div>
 
-        <form id="job-form" class="job-form">
-          <label for="cve-id">CVE identifier</label>
+        <form
+          id="job-form"
+          class="job-form"
+        >
+          <label for="cve-id">
+            CVE identifier
+          </label>
+
           <div class="input-group">
             <input
               id="cve-id"
               name="cve_id"
+              type="text"
               pattern="CVE-[0-9]{4}-[0-9]{4,}"
               placeholder="e.g., CVE-2021-44228"
               autocomplete="off"
               required
             >
-            <button class="primary-button" type="submit">
-              Run CVE-VEX
+
+            <button
+              class="primary-button"
+              type="submit"
+            >
+              Run A2A-VEX
             </button>
           </div>
-          <p id="form-message" class="form-message"></p>
+
+          <p
+            id="form-message"
+            class="form-message"
+            aria-live="polite"
+          ></p>
         </form>
       </section>
 
       <section class="stats-grid">
         <article class="stat-card">
-          <span>Total Jobs</span><strong id="total-count">0</strong>
+          <span>Total Jobs</span>
+
+          <strong id="total-count">
+            0
+          </strong>
+
           <small>All submitted analyses</small>
         </article>
+
         <article class="stat-card">
-          <span>Running</span><strong id="running-count">0</strong>
+          <span>Running</span>
+
+          <strong id="running-count">
+            0
+          </strong>
+
           <small>Queued or in progress</small>
         </article>
+
         <article class="stat-card">
-          <span>Reproduced</span><strong id="success-count">0</strong>
+          <span>Reproduced</span>
+
+          <strong id="success-count">
+            0
+          </strong>
+
           <small>Verifier-confirmed CVEs</small>
         </article>
+
         <article class="stat-card">
-          <span>Review Required</span><strong id="failed-count">0</strong>
-          <small>Needs input, failed, or inconclusive</small>
+          <span>Review Required</span>
+
+          <strong id="failed-count">
+            0
+          </strong>
+
+          <small>
+            Needs input, asset context, or manual review
+          </small>
         </article>
       </section>
 
@@ -93,93 +183,739 @@
         <article class="panel jobs-panel">
           <div class="panel-header">
             <div>
-              <span class="section-label">JOB QUEUE</span>
+              <span class="section-label">
+                JOB QUEUE
+              </span>
+
               <h2>Recent jobs</h2>
+
+              <small>
+                Showing the 10 most recent analyses
+              </small>
             </div>
-            <button id="refresh-button" class="secondary-button" type="button">
+
+            <button
+              id="refresh-button"
+              class="secondary-button"
+              type="button"
+            >
               Refresh
             </button>
           </div>
-          <div id="jobs" class="jobs-list">
-            <div class="empty-state">No jobs yet.</div>
+
+          <div
+            id="jobs"
+            class="jobs-list"
+          >
+            <div class="empty-state">
+              No jobs yet.
+            </div>
           </div>
         </article>
 
         <article class="panel details-panel">
           <div class="panel-header">
             <div>
-              <span class="section-label">SELECTED JOB</span>
+              <span class="section-label">
+                SELECTED JOB
+              </span>
+
               <h2>Execution details</h2>
             </div>
-            <span id="selected-status" class="status-badge neutral">No job</span>
+
+            <span
+              id="selected-status"
+              class="status-badge neutral"
+            >
+              No job
+            </span>
           </div>
 
-          <div id="progress-steps" class="progress-steps">
-            <div class="step" data-step="queued"><span>1</span><small>Queued</small></div>
-            <div class="step" data-step="extracting"><span>2</span><small>Extract</small></div>
-            <div class="step" data-step="validating"><span>3</span><small>Validate</small></div>
-            <div class="step" data-step="running"><span>4</span><small>Execute</small></div>
-            <div class="step" data-step="succeeded"><span>5</span><small>Complete</small></div>
+          <div
+            id="progress-steps"
+            class="progress-steps"
+          >
+            <div
+              class="step"
+              data-step="queued"
+            >
+              <span>1</span>
+              <small>Queued</small>
+            </div>
+
+            <div
+              class="step"
+              data-step="extracting"
+            >
+              <span>2</span>
+              <small>Extract</small>
+            </div>
+
+            <div
+              class="step"
+              data-step="validating"
+            >
+              <span>3</span>
+              <small>Validate</small>
+            </div>
+
+            <div
+              class="step"
+              data-step="running"
+            >
+              <span>4</span>
+              <small>Assess</small>
+            </div>
+
+            <div
+              class="step"
+              data-step="succeeded"
+            >
+              <span>5</span>
+              <small>Complete</small>
+            </div>
           </div>
 
           <div class="detail-grid">
             <div class="detail-item">
-              <span>CVE ID</span><strong id="detail-cve">-</strong>
+              <span>CVE ID</span>
+              <strong id="detail-cve">-</strong>
             </div>
+
             <div class="detail-item">
-              <span>Job Status</span><strong id="detail-job-status">-</strong>
+              <span>Job Status</span>
+              <strong id="detail-job-status">-</strong>
             </div>
+
             <div class="detail-item">
-              <span>Job ID</span><strong id="detail-job">-</strong>
+              <span>Job ID</span>
+              <strong id="detail-job">-</strong>
             </div>
+
             <div class="detail-item">
-              <span>Stage</span><strong id="detail-stage">-</strong>
+              <span>Stage</span>
+              <strong id="detail-stage">-</strong>
             </div>
           </div>
 
           <section class="verdict-card">
             <div class="verdict-heading">
               <div>
-                <span class="section-label">REPRODUCTION VERDICT</span>
-                <h3 id="verdict-title">Not evaluated</h3>
+                <span class="section-label">
+                  REPRODUCTION VERDICT
+                </span>
+
+                <h3 id="verdict-title">
+                  Not evaluated
+                </h3>
               </div>
-              <span id="verdict-badge" class="verdict-badge unknown">UNKNOWN</span>
+
+              <span
+                id="verdict-badge"
+                class="verdict-badge unknown"
+              >
+                UNKNOWN
+              </span>
             </div>
 
             <div class="verdict-grid">
               <div>
                 <span>Exploitable</span>
-                <strong id="verdict-exploitable">-</strong>
+
+                <strong id="verdict-exploitable">
+                  -
+                </strong>
               </div>
+
               <div>
                 <span>Verifier</span>
-                <strong id="verdict-verifier">-</strong>
+
+                <strong id="verdict-verifier">
+                  -
+                </strong>
               </div>
+
               <div class="verdict-reason">
                 <span>Final reason</span>
-                <strong id="verdict-reason">No final result yet.</strong>
+
+                <strong id="verdict-reason">
+                  No final result yet.
+                </strong>
               </div>
             </div>
           </section>
 
-          <section id="input-editor" class="input-editor hidden">
+
+          <section
+            id="likelihood-card"
+            class="likelihood-card hidden"
+          >
+            <div class="likelihood-heading">
+              <div>
+                <span class="section-label">
+                  ASSET IMPACT LIKELIHOOD
+                </span>
+
+                <h3 id="likelihood-title">
+                  Operational likelihood not evaluated
+                </h3>
+              </div>
+
+              <span
+                id="likelihood-badge"
+                class="likelihood-badge under-investigation"
+              >
+                UNDER INVESTIGATION
+              </span>
+            </div>
+
+            <p class="likelihood-disclaimer">
+              This is an evidence-based operational estimate.
+              The base VEX state remains
+              <strong id="base-vex-status">
+                under_investigation
+              </strong>.
+            </p>
+
+            <div class="likelihood-summary-grid">
+              <div>
+                <span>Confidence</span>
+                <strong id="likelihood-confidence">-</strong>
+              </div>
+
+              <div>
+                <span>Assessment state</span>
+                <strong id="asset-assessment-status">-</strong>
+              </div>
+
+              <div>
+                <span>Matched</span>
+                <strong id="matched-count">0</strong>
+              </div>
+
+              <div>
+                <span>Unmatched</span>
+                <strong id="unmatched-count">0</strong>
+              </div>
+
+              <div>
+                <span>Unknown</span>
+                <strong id="unknown-count">0</strong>
+              </div>
+            </div>
+
+            <div class="condition-columns">
+              <section class="condition-panel matched">
+                <h4>Matched prerequisites</h4>
+                <div id="matched-conditions" class="condition-list">
+                  <p class="condition-empty">No matched conditions.</p>
+                </div>
+              </section>
+
+              <section class="condition-panel unmatched">
+                <h4>Unmatched prerequisites</h4>
+                <div id="unmatched-conditions" class="condition-list">
+                  <p class="condition-empty">No unmatched conditions.</p>
+                </div>
+              </section>
+
+              <section class="condition-panel unknown">
+                <h4>Unknown prerequisites</h4>
+                <div id="unknown-conditions" class="condition-list">
+                  <p class="condition-empty">No unknown conditions.</p>
+                </div>
+              </section>
+            </div>
+
+            <div class="assessment-reasons">
+              <span>Assessment reasons</span>
+              <ul id="likelihood-reasons">
+                <li>No likelihood assessment result yet.</li>
+              </ul>
+            </div>
+          </section>
+
+          <!--
+            Existing manual CVE reproduction context editor.
+            Displayed for needs_input, failed, and unsupported jobs.
+          -->
+          <section
+            id="input-editor"
+            class="input-editor hidden"
+          >
             <div class="editor-heading">
               <div>
-                <span class="section-label">MANUAL CONTEXT</span>
-                <h3>Complete reproduction input</h3>
+                <span class="section-label">
+                  MANUAL REPRODUCTION CONTEXT
+                </span>
+
+                <h3>
+                  Complete reproduction input
+                </h3>
               </div>
-              <button id="resume-button" class="primary-inline-button" type="button">
+
+              <button
+                id="resume-button"
+                class="primary-inline-button"
+                type="button"
+              >
                 Save and Resume
               </button>
             </div>
+
             <p id="missing-fields"></p>
-            <textarea id="input-json-editor" spellcheck="false"></textarea>
-            <p id="editor-message" class="editor-message"></p>
+
+            <textarea
+              id="input-json-editor"
+              spellcheck="false"
+              aria-label="CVE reproduction JSON input"
+            ></textarea>
+
+            <p
+              id="editor-message"
+              class="editor-message"
+              aria-live="polite"
+            ></p>
+          </section>
+
+          <!--
+            Asset operational context editor.
+            Displayed only for needs_asset_input jobs.
+          -->
+          <section
+            id="asset-input-panel"
+            class="asset-input-panel hidden"
+          >
+            <div class="editor-heading asset-editor-heading">
+              <div>
+                <span class="section-label">
+                  ASSET OPERATIONAL CONTEXT
+                </span>
+
+                <h3>
+                  Asset information required
+                </h3>
+
+                <p class="asset-description">
+                  Public source code is unavailable for
+                  <strong id="asset-cve-id">
+                    this CVE
+                  </strong>.
+                  Enter information about the deployed asset
+                  to continue with an operational impact
+                  assessment.
+                </p>
+              </div>
+            </div>
+
+            <input
+              id="asset-job-id"
+              type="hidden"
+            >
+
+            <form id="asset-input-form">
+              <div class="form-section first-form-section">
+                <h4>Asset identification</h4>
+
+                <div class="form-grid">
+                  <label for="asset-product-name">
+                    Product name
+                    <span class="required-mark">*</span>
+
+                    <input
+                      id="asset-product-name"
+                      type="text"
+                      placeholder="e.g., Example Server"
+                      required
+                    >
+                  </label>
+
+                  <label for="asset-vendor">
+                    Vendor
+
+                    <input
+                      id="asset-vendor"
+                      type="text"
+                      placeholder="e.g., Example Corporation"
+                    >
+                  </label>
+
+                  <label for="asset-installed-version">
+                    Installed version
+                    <span class="required-mark">*</span>
+
+                    <input
+                      id="asset-installed-version"
+                      type="text"
+                      placeholder="e.g., 4.2.1"
+                      required
+                    >
+                  </label>
+
+                  <label for="asset-operating-system">
+                    Operating system
+
+                    <input
+                      id="asset-operating-system"
+                      type="text"
+                      placeholder="e.g., Ubuntu 22.04"
+                    >
+                  </label>
+
+                  <label for="asset-architecture">
+                    Architecture
+
+                    <input
+                      id="asset-architecture"
+                      type="text"
+                      placeholder="e.g., x86_64, ARM64"
+                    >
+                  </label>
+
+                  <label for="asset-deployment-type">
+                    Deployment type
+
+                    <select id="asset-deployment-type">
+                      <option value="unknown">
+                        Unknown
+                      </option>
+
+                      <option value="server">
+                        Server
+                      </option>
+
+                      <option value="workstation">
+                        Workstation
+                      </option>
+
+                      <option value="embedded">
+                        Embedded system
+                      </option>
+
+                      <option value="container">
+                        Container
+                      </option>
+
+                      <option value="virtual_machine">
+                        Virtual machine
+                      </option>
+
+                      <option value="appliance">
+                        Appliance
+                      </option>
+
+                      <option value="network_device">
+                        Network device
+                      </option>
+
+                      <option value="cloud_service">
+                        Cloud service
+                      </option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <h4>Runtime information</h4>
+
+                <p class="form-section-description">
+                  Describe whether the affected service,
+                  component, or vulnerable feature is active
+                  in the deployed asset.
+                </p>
+
+                <div class="form-grid">
+                  <label for="asset-service-running">
+                    Service running
+
+                    <select id="asset-service-running">
+                      <option value="">
+                        Unknown
+                      </option>
+
+                      <option value="true">
+                        Yes
+                      </option>
+
+                      <option value="false">
+                        No
+                      </option>
+                    </select>
+                  </label>
+
+                  <label for="asset-feature-enabled">
+                    Vulnerable feature enabled
+
+                    <select id="asset-feature-enabled">
+                      <option value="">
+                        Unknown
+                      </option>
+
+                      <option value="true">
+                        Yes
+                      </option>
+
+                      <option value="false">
+                        No
+                      </option>
+                    </select>
+                  </label>
+
+                  <label for="asset-component-loaded">
+                    Component loaded
+
+                    <select id="asset-component-loaded">
+                      <option value="">
+                        Unknown
+                      </option>
+
+                      <option value="true">
+                        Yes
+                      </option>
+
+                      <option value="false">
+                        No
+                      </option>
+                    </select>
+                  </label>
+
+                  <label for="asset-component-reachable">
+                    Component reachable
+
+                    <select id="asset-component-reachable">
+                      <option value="">
+                        Unknown
+                      </option>
+
+                      <option value="true">
+                        Yes
+                      </option>
+
+                      <option value="false">
+                        No
+                      </option>
+                    </select>
+                  </label>
+
+                  <label for="asset-service-name">
+                    Service name
+
+                    <input
+                      id="asset-service-name"
+                      type="text"
+                      placeholder="e.g., example.service"
+                    >
+                  </label>
+
+                  <label for="asset-process-name">
+                    Process name
+
+                    <input
+                      id="asset-process-name"
+                      type="text"
+                      placeholder="e.g., example-server"
+                    >
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <h4>Network exposure</h4>
+
+                <p class="form-section-description">
+                  Describe whether an attacker can reach the
+                  affected service or component.
+                </p>
+
+                <div class="form-grid">
+                  <label for="asset-internet-exposed">
+                    Internet exposed
+
+                    <select id="asset-internet-exposed">
+                      <option value="false">
+                        No
+                      </option>
+
+                      <option value="true">
+                        Yes
+                      </option>
+                    </select>
+                  </label>
+
+                  <label for="asset-auth-required">
+                    Authentication required
+
+                    <select id="asset-auth-required">
+                      <option value="">
+                        Unknown
+                      </option>
+
+                      <option value="true">
+                        Yes
+                      </option>
+
+                      <option value="false">
+                        No
+                      </option>
+                    </select>
+                  </label>
+
+                  <label for="asset-listening-ports">
+                    Listening ports
+
+                    <input
+                      id="asset-listening-ports"
+                      type="text"
+                      placeholder="e.g., 80, 443, 8080"
+                    >
+                  </label>
+
+                  <label for="asset-reachable-networks">
+                    Reachable networks
+
+                    <input
+                      id="asset-reachable-networks"
+                      type="text"
+                      placeholder="e.g., DMZ, internal, management"
+                    >
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <h4>Patch and security controls</h4>
+
+                <p class="form-section-description">
+                  Record patch information and compensating
+                  controls that may reduce exposure.
+                </p>
+
+                <div class="form-grid">
+                  <label for="asset-patch-status">
+                    Patch status
+
+                    <select id="asset-patch-status">
+                      <option value="unknown">
+                        Unknown
+                      </option>
+
+                      <option value="patched">
+                        Patched
+                      </option>
+
+                      <option value="unpatched">
+                        Unpatched
+                      </option>
+                    </select>
+                  </label>
+
+                  <label for="asset-firewall-enabled">
+                    Firewall enabled
+
+                    <select id="asset-firewall-enabled">
+                      <option value="">
+                        Unknown
+                      </option>
+
+                      <option value="true">
+                        Yes
+                      </option>
+
+                      <option value="false">
+                        No
+                      </option>
+                    </select>
+                  </label>
+
+                  <label for="asset-network-segmentation">
+                    Network segmentation
+
+                    <select id="asset-network-segmentation">
+                      <option value="">
+                        Unknown
+                      </option>
+
+                      <option value="true">
+                        Yes
+                      </option>
+
+                      <option value="false">
+                        No
+                      </option>
+                    </select>
+                  </label>
+
+                  <label for="asset-ids-enabled">
+                    IDS/IPS enabled
+
+                    <select id="asset-ids-enabled">
+                      <option value="">
+                        Unknown
+                      </option>
+
+                      <option value="true">
+                        Yes
+                      </option>
+
+                      <option value="false">
+                        No
+                      </option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <h4>Evidence and notes</h4>
+
+                <p class="form-section-description">
+                  Include supporting information such as
+                  package inventories, service status,
+                  configuration evidence, network scans,
+                  logs, or patch records.
+                </p>
+
+                <label
+                  class="full-width-field"
+                  for="asset-evidence-notes"
+                >
+                  Evidence notes
+
+                  <textarea
+                    id="asset-evidence-notes"
+                    rows="7"
+                    placeholder="Describe the operational evidence used for this assessment."
+                  ></textarea>
+                </label>
+              </div>
+
+              <div class="form-actions">
+                <button
+                  id="asset-submit-button"
+                  type="submit"
+                  class="primary-inline-button"
+                >
+                  Save and Assess
+                </button>
+
+                <span
+                  id="asset-form-message"
+                  class="form-message"
+                  aria-live="polite"
+                ></span>
+              </div>
+            </form>
           </section>
 
           <details class="raw-details">
-            <summary>Raw job metadata</summary>
-            <pre id="job-detail">Select a job.</pre>
+            <summary>
+              Raw job metadata
+            </summary>
+
+            <pre id="job-detail">
+Select a job.
+            </pre>
           </details>
         </article>
       </section>
@@ -187,16 +923,26 @@
       <section class="panel log-panel">
         <div class="panel-header">
           <div>
-            <span class="section-label">LIVE OUTPUT</span>
+            <span class="section-label">
+              LIVE OUTPUT
+            </span>
+
             <h2>Execution log</h2>
           </div>
-          <span class="live-indicator"><span></span>Live</span>
+
+          <span class="live-indicator">
+            <span></span>
+            Live
+          </span>
         </div>
-        <pre id="job-log">Select a job to view its log.</pre>
+
+        <pre id="job-log">
+Select a job to view its log.
+        </pre>
       </section>
     </main>
   </div>
 
-  <script src="/static/app.js?v=5"></script>
+  <script src="/static/app.js?v=8"></script>
 </body>
 </html>

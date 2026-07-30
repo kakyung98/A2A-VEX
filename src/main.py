@@ -1,7 +1,11 @@
 import os
+import sys
 import time
 import signal
 import argparse
+from pathlib import Path
+from urllib.parse import urlparse
+
 from dotenv import load_dotenv
 
 class TimeoutExpired(Exception):
@@ -11,7 +15,7 @@ class TimeoutExpired(Exception):
         super().__init__(self.message)
 
 def alarm_handler(signum, frame):
-    raise TimeoutExpired
+    raise TimeoutExpired()
 
 if not os.environ.get('ENV_PATH'):
     load_dotenv()
@@ -19,8 +23,9 @@ else:
     dotenv_path = os.environ['ENV_PATH']
     load_dotenv(dotenv_path=dotenv_path)
 
-if not os.environ.get('MODEL'):
-    exit(1)
+if not os.environ.get("MODEL"):
+    print("ERROR: MODEL environment variable is required.", file=sys.stderr)
+    raise SystemExit(1)
 
 MODEL = os.environ['MODEL']
 
@@ -74,9 +79,22 @@ class CVEReproducer:
                     "-------------------------------------------\n")
                 processor = CVEDataProcessor(self.cve_id, self.cve_json)
                 self.cve_info = processor.run()
-                helper.save_response(self.cve_id, self.cve_info, "cve_info", struct=True)
 
-                print(f"✅ CVE Data Processor Done!")
+                if not isinstance(self.cve_info, dict):
+                    self.fail("CVE Data Processor returned an invalid result.")
+                    return
+
+                helper.save_response(
+                    self.cve_id,
+                    self.cve_info,
+                    "cve_info",
+                    struct=True,
+                )
+
+                if not self.validate_cve_info_for_build():
+                    return
+
+                print("✅ CVE Data Processor Done!")
 
                 print("\n⏰ Starting timer ...")
                 self.start_time = time.time()
@@ -85,13 +103,39 @@ class CVEReproducer:
                     "- a) 🧠 Knowledge Builder \n" \
                     "-------------------------------------------\n")
         
-                cwe = '\n'.join([f"* {c['id']} - {c['value']}" for c in self.cve_info["cwes"]]) if "cwes" in self.cve_info else ""
-                project_name = self.cve_info["sw_version_wget"].split("//")[1].split("/")[2]
-                patches = '\n\n'.join([f"Commit Hash: {p['url'].split('/')[-1]}\n\"\"\"\n{p['content']}\n\"\"\"" for p in self.cve_info["patch_commits"]]) if "patch_commits" in self.cve_info else ""
-                sec_adv = '\n\n'.join([f"Advisory: {a['url']}\n\"\"\"\n{a['content']}\n\"\"\"" for ix, a in enumerate(self.cve_info["sec_adv"])]) if "sec_adv" in self.cve_info else ""
+                cwe_entries = self.cve_info.get("cwes") or []
+                cwe = "\n".join(
+                    f"* {entry.get('id', 'not provided')} - "
+                    f"{entry.get('value', 'not provided')}"
+                    for entry in cwe_entries
+                    if isinstance(entry, dict)
+                )
+
+                project_name = self.derive_project_name()
+
+                patch_entries = self.cve_info.get("patch_commits") or []
+                patches = "\n\n".join(
+                    "Commit Hash: "
+                    f"{str(entry.get('url', '')).rstrip('/').split('/')[-1]}\n"
+                    "\"\"\"\n"
+                    f"{entry.get('content', '')}\n"
+                    "\"\"\""
+                    for entry in patch_entries
+                    if isinstance(entry, dict)
+                )
+
+                advisory_entries = self.cve_info.get("sec_adv") or []
+                sec_adv = "\n\n".join(
+                    f"Advisory: {entry.get('url', '')}\n"
+                    "\"\"\"\n"
+                    f"{entry.get('content', '')}\n"
+                    "\"\"\""
+                    for entry in advisory_entries
+                    if isinstance(entry, dict)
+                )
                 knowledge_builder = KnowledgeBuilder(
                     id = self.cve_id,
-                    description = self.cve_info["description"],
+                    description = self.cve_info.get("description", ""),
                     cwe = cwe,
                     project_name = project_name,
                     affected_version = self.cve_info["sw_version"],
@@ -271,8 +315,17 @@ class CVEReproducer:
 
             print(f"\n💰 Cost till Repo Builder = {self.total_cost}\n")
 
-            if self.repo_build['success'].lower()=="no":
-                self.results = {"success": "False", "reason": 'Repo was not built!!!'}
+            if self.repo_build['success'].lower() == "no":
+                self.fail("Repo was not built!!!")
+                return
+
+            # In A2A mode the Environment Agent invokes only the build phase.
+            # Do not continue into exploit artifact loading after a successful build.
+            if not EXPLOIT and not CTF_VERIFIER:
+                self.results = {
+                    "success": "True",
+                    "reason": "Build phase completed successfully",
+                }
                 return
 
             if EXPLOIT:
@@ -568,12 +621,40 @@ if __name__ == "__main__":
     
     try:
         reproducer.run()
-    except:
-        signal.alarm(0)
-    
+    except TimeoutExpired as exc:
+        reproducer.fail(exc.message)
+    except Exception as exc:
+        reproducer.fail(f"Unhandled execution error: {exc}")
+    finally:
+        elapsed_time = TIMEOUT - signal.alarm(0)
+
+    if not reproducer.results:
+        reproducer.fail("Execution finished without a final result.")
+
     print("Cost:", reproducer.total_cost)
-    reproducer.results['cost'] = reproducer.total_cost
-    reproducer.results['time'] = TIMEOUT - signal.alarm(0)
-    reproducer.results['model'] = os.environ['MODEL']
+    reproducer.results["cost"] = reproducer.total_cost
+    reproducer.results["time"] = elapsed_time
+    reproducer.results["model"] = MODEL
     print("Results:", reproducer.results)
-    helper.save_result(args.cve, reproducer.results)
+
+    logs_dir = Path(getattr(helper, "LOGS_DIR", "/shared"))
+    try:
+        logs_dir.mkdir(parents=True, exist_ok=True)
+        helper.save_result(args.cve, reproducer.results)
+    except OSError as exc:
+        fallback_dir = Path(__file__).resolve().parent / "results"
+        fallback_dir.mkdir(parents=True, exist_ok=True)
+        fallback_file = fallback_dir / f"{args.cve}-result.txt"
+        fallback_file.write_text(
+            repr(reproducer.results) + "\\n",
+            encoding="utf-8",
+        )
+        print(
+            "WARNING: Could not write the standard result file "
+            f"to {logs_dir}: {exc}. "
+            f"Fallback result saved to {fallback_file}",
+            file=sys.stderr,
+        )
+
+    succeeded = str(reproducer.results.get("success", "")).lower() == "true"
+    raise SystemExit(0 if succeeded else 1)

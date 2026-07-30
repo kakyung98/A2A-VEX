@@ -814,3 +814,304 @@ pre {
 .verdict-reason {
   grid-column: 1 / -1;
 }
+
+
+.hidden {
+  display: none !important;
+}
+
+#asset-input-panel {
+  margin-top: 24px;
+}
+
+#asset-input-panel .panel-header {
+  margin-bottom: 24px;
+}
+
+.form-section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.form-section h3 {
+  margin: 0 0 16px;
+  font-size: 16px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.form-grid label,
+.form-section > label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.form-grid input,
+.form-grid select,
+.form-section textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d8deea;
+  border-radius: 10px;
+  padding: 11px 12px;
+  font: inherit;
+  background: #ffffff;
+}
+
+.form-grid input:focus,
+.form-grid select:focus,
+.form-section textarea:focus {
+  outline: none;
+  border-color: #6d6bff;
+  box-shadow: 0 0 0 3px
+    rgba(109, 107, 255, 0.12);
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.form-message {
+  font-size: 13px;
+  color: #5f6878;
+}
+
+.status-asset-input {
+  background: #e7e5ff;
+  color: #5146c8;
+}
+
+@media (max-width: 900px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/*
+ * ==========================================================================
+ * Asset likelihood assessment
+ * ==========================================================================
+ */
+
+.likelihood-card {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid #dfe5ef;
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, #fbfcff, #f5f7fb);
+}
+
+.likelihood-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.likelihood-heading h3 {
+  margin: 5px 0 0;
+  font-size: 18px;
+}
+
+.likelihood-badge {
+  padding: 7px 11px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.likelihood-badge.likely-affected {
+  color: #a13d46;
+  background: #ffe1e4;
+}
+
+.likelihood-badge.likely-not-affected {
+  color: #126d49;
+  background: #d9f6e8;
+}
+
+.likelihood-badge.under-investigation {
+  color: #855800;
+  background: #ffedbd;
+}
+
+.likelihood-disclaimer {
+  margin: 12px 0 0;
+  padding: 11px 12px;
+  color: #5f687c;
+  border: 1px solid #e5e8ef;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.likelihood-summary-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.likelihood-summary-grid > div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #e3e7ef;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.likelihood-summary-grid span,
+.assessment-reasons > span {
+  display: block;
+  margin-bottom: 5px;
+  color: #788298;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.likelihood-summary-grid strong {
+  display: block;
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+}
+
+.condition-columns {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.condition-panel {
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid #e1e6ef;
+  border-radius: 11px;
+  background: #fff;
+}
+
+.condition-panel.matched {
+  border-top: 3px solid #45b982;
+}
+
+.condition-panel.unmatched {
+  border-top: 3px solid #ef6a73;
+}
+
+.condition-panel.unknown {
+  border-top: 3px solid #e2ad3f;
+}
+
+.condition-panel h4 {
+  margin: 0 0 10px;
+  font-size: 12px;
+}
+
+.condition-list {
+  display: grid;
+  gap: 8px;
+}
+
+.condition-item {
+  padding: 9px;
+  border-radius: 8px;
+  background: #f6f8fb;
+}
+
+.condition-item strong,
+.condition-item span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.condition-item strong {
+  font-size: 11px;
+}
+
+.condition-item span {
+  margin-top: 4px;
+  color: #707b90;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.condition-empty {
+  margin: 0;
+  color: #9099aa;
+  font-size: 11px;
+}
+
+.assessment-reasons {
+  margin-top: 14px;
+  padding: 13px;
+  border: 1px solid #e3e7ef;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.assessment-reasons ul {
+  margin: 7px 0 0;
+  padding-left: 18px;
+  color: #4f5b71;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.status-badge.needs-asset-input,
+.job-status.needs-asset-input {
+  color: #5146c8;
+  background: #e7e5ff;
+}
+
+.verdict-badge.not-attempted,
+.job-status.not-attempted {
+  color: #5d6070;
+  background: #e9ebf0;
+}
+
+@media (max-width: 1150px) {
+  .likelihood-summary-grid {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+  }
+
+  .condition-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .likelihood-heading {
+    display: block;
+  }
+
+  .likelihood-badge {
+    display: inline-block;
+    margin-top: 10px;
+  }
+
+  .likelihood-summary-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
