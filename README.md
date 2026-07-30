@@ -184,7 +184,7 @@ Dev Containers: Reopen in Container
 ### 2. Move to the `src` directory
 
 ```bash
-cd /workspaces/cve-genie/src
+cd /workspaces/A2A-VEX/src
 ```
 
 ### 3. Activate the virtual environment
@@ -408,7 +408,7 @@ src/
 ## C-❷) Install Web and A2A Dependencies
 
 ```bash
-cd /workspaces/cve-genie/src
+cd /workspaces/A2A-VEX/src
 source env/bin/activate
 
 pip install -r requirements-web.txt
@@ -420,7 +420,7 @@ playwright install
 Verify Playwright with the virtual-environment Python:
 
 ```bash
-/workspaces/cve-genie/src/env/bin/python -c \
+/workspaces/A2A-VEX/src/env/bin/python -c \
 "from playwright.sync_api import sync_playwright; print('Playwright OK')"
 ```
 
@@ -429,19 +429,19 @@ Verify Playwright with the virtual-environment Python:
 ## C-❸) Verify Required Files
 
 ```bash
-test -x /workspaces/cve-genie/src/env/bin/python \
+test -x /workspaces/A2A-VEX/src/env/bin/python \
   && echo "Python OK"
 
-test -f /workspaces/cve-genie/src/main.py \
+test -f /workspaces/A2A-VEX/src/main.py \
   && echo "main.py OK"
 
-test -f /workspaces/cve-genie/src/data/scripts/cve_data.py \
+test -f /workspaces/A2A-VEX/src/data/scripts/cve_data.py \
   && echo "cve_data.py OK"
 
-test -f /workspaces/cve-genie/src/.env \
+test -f /workspaces/A2A-VEX/src/.env \
   && echo ".env OK"
 
-test -d /workspaces/cve-genie/src/data/cvelistV5 \
+test -d /workspaces/A2A-VEX/src/data/cvelistV5 \
   && echo "cvelistV5 OK"
 ```
 
@@ -462,7 +462,7 @@ python -m py_compile cve_genie_web/services/runner_service.py
 After opening the project in the VS Code Dev Container:
 
 ```bash
-cd /workspaces/cve-genie/src
+cd /workspaces/A2A-VEX/src
 source env/bin/activate
 ```
 
@@ -490,7 +490,7 @@ curl http://127.0.0.1:8101/.well-known/agent-card.json | python -m json.tool
 Start the web service in A2A mode:
 
 ```bash
-CVE_GENIE_PYTHON=/workspaces/cve-genie/src/env/bin/python \
+CVE_GENIE_PYTHON=/workspaces/A2A-VEX/src/env/bin/python \
 CVE_GENIE_EXECUTION_MODE=a2a \
 ./run_web.sh
 ```
@@ -506,7 +506,7 @@ Health:    http://localhost:8000/health
 Legacy mode:
 
 ```bash
-CVE_GENIE_PYTHON=/workspaces/cve-genie/src/env/bin/python \
+CVE_GENIE_PYTHON=/workspaces/A2A-VEX/src/env/bin/python \
 CVE_GENIE_EXECUTION_MODE=legacy \
 ./run_web.sh
 ```
@@ -939,7 +939,7 @@ Existing databases are migrated automatically when the FastAPI application start
 To parse old job logs and populate the newly added reproduction fields:
 
 ```bash
-cd /workspaces/cve-genie/src
+cd /workspaces/A2A-VEX/src
 source env/bin/activate
 
 python BACKFILL-EXISTING-RESULTS.py
@@ -988,7 +988,7 @@ fuser -k 8000/tcp
 Restart:
 
 ```bash
-cd /workspaces/cve-genie/src
+cd /workspaces/A2A-VEX/src
 source env/bin/activate
 ./run_web.sh
 ```
@@ -1078,7 +1078,7 @@ print(settings.python_executable)
 Expected:
 
 ```text
-/workspaces/cve-genie/src/env/bin/python
+/workspaces/A2A-VEX/src/env/bin/python
 ```
 
 Do not call `.resolve()` on the virtual-environment Python path in `cve_genie_web/config.py`. Resolving the symbolic link may turn it into `/usr/bin/python3.10` and bypass packages installed in the virtual environment.
@@ -1100,7 +1100,7 @@ Restart:
 pkill -f "uvicorn cve_genie_web.app:app" 2>/dev/null || true
 sleep 2
 
-CVE_GENIE_PYTHON=/workspaces/cve-genie/src/env/bin/python \
+CVE_GENIE_PYTHON=/workspaces/A2A-VEX/src/env/bin/python \
 CVE_GENIE_EXECUTION_MODE=a2a \
 ./run_web.sh
 ```
@@ -1119,7 +1119,7 @@ Do not use `pkill -f python`; it may terminate the A2A agent servers.
 ```bash
 pkill -f "uvicorn cve_genie_web.app:app" 2>/dev/null || true
 
-cd /workspaces/cve-genie/src
+cd /workspaces/A2A-VEX/src
 rm -f cve_genie_jobs.db
 rm -rf web_jobs
 mkdir -p web_jobs
@@ -1299,13 +1299,13 @@ MODEL=example_run
 Optional web configuration variables include:
 
 ```dotenv
-CVE_GENIE_ROOT=/workspaces/cve-genie/src
-CVE_GENIE_PYTHON=/workspaces/cve-genie/src/env/bin/python
-CVE_GENIE_ENV_FILE=/workspaces/cve-genie/src/.env
-CVE_GENIE_DATA_SCRIPT=/workspaces/cve-genie/src/data/scripts/cve_data.py
-CVE_GENIE_MAIN_SCRIPT=/workspaces/cve-genie/src/main.py
-CVE_GENIE_JOB_ROOT=/workspaces/cve-genie/src/web_jobs
-CVE_GENIE_DATABASE=/workspaces/cve-genie/src/cve_genie_jobs.db
+CVE_GENIE_ROOT=/workspaces/A2A-VEX/src
+CVE_GENIE_PYTHON=/workspaces/A2A-VEX/src/env/bin/python
+CVE_GENIE_ENV_FILE=/workspaces/A2A-VEX/src/.env
+CVE_GENIE_DATA_SCRIPT=/workspaces/A2A-VEX/src/data/scripts/cve_data.py
+CVE_GENIE_MAIN_SCRIPT=/workspaces/A2A-VEX/src/main.py
+CVE_GENIE_JOB_ROOT=/workspaces/A2A-VEX/src/web_jobs
+CVE_GENIE_DATABASE=/workspaces/A2A-VEX/src/cve_genie_jobs.db
 CVE_GENIE_PROCESS_TIMEOUT=7200
 CVE_GENIE_EXECUTION_MODE=a2a
 CVE_GENIE_ENVIRONMENT_AGENT_URL=http://127.0.0.1:8101
@@ -1337,7 +1337,7 @@ The current A2A-VEX implementation is a functional research prototype.
 # H) Quick Start
 
 ```bash
-cd /workspaces/cve-genie/src
+cd /workspaces/A2A-VEX/src
 source env/bin/activate
 
 pip install -r requirements-web.txt
@@ -1364,7 +1364,7 @@ curl http://127.0.0.1:8103/health
 Start the web dashboard:
 
 ```bash
-CVE_GENIE_PYTHON=/workspaces/cve-genie/src/env/bin/python \
+CVE_GENIE_PYTHON=/workspaces/A2A-VEX/src/env/bin/python \
 CVE_GENIE_EXECUTION_MODE=a2a \
 ./run_web.sh
 ```

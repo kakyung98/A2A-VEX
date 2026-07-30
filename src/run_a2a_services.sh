@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="${CVE_GENIE_ROOT:-/workspaces/cve-genie/src}"
+ROOT="${CVE_GENIE_ROOT:-/workspaces/A2A-VEX/src}"
 PYTHON="${CVE_GENIE_PYTHON:-$ROOT/env/bin/python}"
 PID_DIR="$ROOT/.a2a-pids"
 LOG_DIR="$ROOT/.a2a-logs"

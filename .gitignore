@@ -179,3 +179,11 @@ src/web_jobs/
 
 # Windows metadata
 *:Zone.Identifier
+
+# Local CVE-Genie runtime files
+src/.env
+src/env/
+src/web_jobs/
+src/cve_genie_jobs.db
+src/**/__pycache__/
+src/**/*.pyc

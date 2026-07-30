@@ -21,7 +21,7 @@ class A2ASettings:
     @classmethod
     def from_env(cls) -> "A2ASettings":
         root = Path(
-            os.getenv("CVE_GENIE_ROOT", "/workspaces/cve-genie/src")
+            os.getenv("CVE_GENIE_ROOT", "/workspaces/A2A-VEX/src")
         ).resolve()
         return cls(
             project_root=root,

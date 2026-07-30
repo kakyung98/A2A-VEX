@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ROOT="${CVE_GENIE_ROOT:-/workspaces/cve-genie/src}"
+ROOT="${CVE_GENIE_ROOT:-/workspaces/A2A-VEX/src}"
 PID_DIR="$ROOT/.a2a-pids"
 
 for name in environment exploit verification; do
